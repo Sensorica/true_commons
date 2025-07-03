@@ -1,0 +1,19 @@
+manifest_version: '1'
+name: true_commons_dna
+integrity:
+  network_seed: null
+  properties: null
+  zomes:
+  - name: true_commons_integrity
+    hash: null
+    bundled: ../../../target/wasm32-unknown-unknown/release/true_commons_integrity.wasm
+    dependencies: null
+    dylib: null
+coordinator:
+  zomes:
+  - name: true_commons
+    hash: null
+    bundled: ../../../target/wasm32-unknown-unknown/release/true_commons.wasm
+    dependencies:
+    - name: true_commons_integrity
+    dylib: null

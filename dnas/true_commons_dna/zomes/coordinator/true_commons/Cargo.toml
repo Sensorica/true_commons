@@ -1,0 +1,14 @@
+[package]
+name = "true_commons"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "true_commons"
+
+[dependencies]
+hdk = { workspace = true }
+serde = { workspace = true }
+holochain_serialized_bytes = { workspace = true }
+true_commons_integrity = { workspace = true }
