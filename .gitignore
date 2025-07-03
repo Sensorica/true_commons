@@ -24,3 +24,11 @@
 .hc*
 .running
 .hc
+
+
+# IDE
+.cursor
+.windsurf
+.zed
+.idea
+.vscode

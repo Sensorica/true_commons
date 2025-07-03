@@ -1,5 +1,7 @@
 # True Commons
 
+> **Note**: This project is currently a **Proof of Concept (PoC)**. It demonstrates the core architectural patterns and user interface for a decentralized digital commons platform. The backend is not fully integrated, and the UI currently operates with mock data.
+
 A **digital commons platform** that enables organization-agnostic, capture-resistant resource sharing built on **Holochain** and **ValueFlows** economic modeling.
 
 ## 🌍 Vision: What are True Commons?
@@ -165,7 +167,7 @@ npm run format      # Auto-fix formatting
 
 ## 📚 Key Documents
 
-- **[TRUE_COMMONS_ARCHITECTURE.md](./TRUE_COMMONS_ARCHITECTURE.md)**: Detailed technical architecture
+- **[TRUE_COMMONS_ARCHITECTURE.md](documentation/TRUE_COMMONS_ARCHITECTURE.md)**: Detailed technical architecture
 - **[ValueFlows Documentation](https://valueflo.ws/)**: Economic modeling foundation  
 - **[hREA Project](https://github.com/holo-rea/holo-rea)**: Holochain Resource-Event-Agent implementation
 - **[Holochain Docs](https://developer.holochain.org/)**: Decentralized application platform
