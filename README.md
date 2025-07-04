@@ -2,22 +2,30 @@
 
 > **Note**: This project is currently a **Proof of Concept (PoC)**. It demonstrates the core architectural patterns and user interface for a decentralized digital commons platform. The backend is not fully integrated, and the UI currently operates with mock data.
 
-A **digital commons platform** that enables organization-agnostic, capture-resistant resource sharing built on **Holochain** and **ValueFlows** economic modeling.
+A **digital commons platform** that enables organization-agnostic, capture-resistant resource sharing built on **Holochain** and **ValueFlows** economic modeling, using **hREA**.
 
 ## 🌍 Vision: What are True Commons?
 
 True Commons represent a new paradigm for digital resources that are:
 
-- **🔒 Capture-Resistant**: Built on Holochain's decentralized architecture to resist corporate capture
-- **🏛️ Organization-Agnostic**: No single entity controls resources; governed by embedded rules
-- **📊 Value-Tracking**: Uses ValueFlows ontology to track all economic activities and contributions  
-- **🔓 Permissionless**: Open access under defined rules - anyone can contribute and use
-- **🌱 Shareable by Default**: Resources are designed for sharing and collaborative improvement
-- **📈 Unenclosable**: Hard to clone or capture due to network effects and embedded governance
+- organization agnostic
+- permissionless: anyone can access or interact with, shareable (by default), traceable (location is specified, search and find capabilities)
+- capture resistant / unenclosable / uncapturable
+- self-governed: rules driven (govern interactions with it, including modification)
+-- access control (credentials, availability and scheduling) - zero-knowledge proof?
+-- roles: custody (responsibility), maintenance (obligations), etc. 
+- self-regulated: peer reviewed, verified and tested (quality control)
+- fully specified, machine readable: function, architecture, standards (dimensions, tolerances, quality), … 
+- composable (can be aggregated into larger assets and pools of shareables)
+- able to interact with processes, through access-type events like: create, consume, use, contribute, etc.
+-- processes need to be attached to these assets, i.e. also be organization agnostic
+
 
 ### Use Case Example
 
-**Bob** creates an open-source irrigation system as a digital artifact containing build instructions, economic data (time, materials, organizational context), and embedded access rules. **Lynn** discovers it, builds the system, adds improvements, and contributes back. The artifact exists independently with no central owner but is governed by its embedded rules, creating value for the entire commons.
+***Commons are shared artifacts or assets that should be freed from organizational context and ownership.***
+
+Bob develops an open source irrigation system for his garden. Everything you need to know about this irrigation system is packaged into a single (composable) digital artifact and stored as a stand-alone digital artifact, a Resource. This digital artifact contains information about how to build the irrigation system (content), but also about how the irrigation system was created in the first place (economic data): Bob's activities, their type, duration, money spent on parts, the organizational context in which the work was done, everything is recoverable. Lynn evolves within another organizational context, geographically removed from Bob. She would like to build an irrigation system for her own garden. She performs an online search and finds a digital artifact that Bob created, detailing an irrigation system, a model. She accesses the model using her own digital environment and can now follow instructions to produce the irrigation system. Whenever she has questions she can message Bob, right there, on top of this Resource, similarly to how we create comments in a Google doc and tag someone in it. But Lynn needs to add a new feature to this device, so she develops it and appends it to the same digital artifact that Bob first created (content), including some information about her efforts (economic data). The new version of this digital artifact will continue to live its life as a stand-alone resource, waiting for someone else to interact with it, use it, improve it, fork it or remix it with something else. It does not depend on its original creator, Bob, the same way the Bitcoin Network does not depend on its mysterious creator Satoshi Nakamoto.
 
 ## 🏗️ Current Implementation
 
