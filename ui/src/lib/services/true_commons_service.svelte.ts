@@ -1,26 +1,31 @@
 import holochainClientService from './holochain_client_service.svelte';
-import graphqlService, {
+import graphqlService from './graphql_service.svelte';
+import {
 	GET_AGENTS,
 	GET_MY_AGENT,
 	GET_ECONOMIC_RESOURCES,
 	GET_ECONOMIC_EVENTS,
-	GET_ACTIONS,
+	GET_ACTIONS
+} from '../graphql/queries';
+import {
 	CREATE_PERSON,
 	CREATE_ECONOMIC_EVENT,
-	UPDATE_ECONOMIC_RESOURCE,
-	type Agent,
-	type EconomicResource,
-	type EconomicEvent,
-	type Action,
-	type GetMyAgentResponse,
-	type GetAgentsResponse,
-	type GetEconomicResourcesResponse,
-	type GetEconomicEventsResponse,
-	type GetActionsResponse,
-	type CreatePersonResponse,
-	type CreateEconomicEventResponse,
-	type UpdateEconomicResourceResponse
-} from './graphql_service..svelte.js';
+	UPDATE_ECONOMIC_RESOURCE
+} from '../graphql/mutations';
+import type {
+	Agent,
+	EconomicResource,
+	EconomicEvent,
+	Action,
+	GetMyAgentResponse,
+	GetAgentsResponse,
+	GetEconomicResourcesResponse,
+	GetEconomicEventsResponse,
+	GetActionsResponse,
+	CreatePersonResponse,
+	CreateEconomicEventResponse,
+	UpdateEconomicResourceResponse
+} from '../graphql/types';
 
 // True Commons specific types extending hREA
 export interface TrueCommonsResource extends EconomicResource {

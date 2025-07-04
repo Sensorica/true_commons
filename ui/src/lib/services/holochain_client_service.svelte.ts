@@ -1,20 +1,17 @@
 import { AppWebsocket, type AppInfoResponse } from '@holochain/client';
-export type ZomeName =
-	| 'users_organizations'
-	| 'requests'
-	| 'offers'
-	| 'administration'
-	| 'service_types'
-	| 'misc'
-	| 'hrea_economic_event'
-	| 'hrea_observation';
+
+export type ZomeName = 'hrea';
+
 export type RoleName = 'true_commons' | 'hrea';
 
 export interface HolochainClientService {
 	readonly appId: string;
 	readonly client: AppWebsocket | null;
 	readonly isConnected: boolean;
+	readonly isConnecting: boolean;
+	readonly connectionError: string | null;
 	connectClient(): Promise<void>;
+	disconnect(): Promise<void>;
 	getAppInfo(): Promise<AppInfoResponse>;
 	callZome(
 		zomeName: ZomeName,
@@ -36,13 +33,54 @@ function createHolochainClientService(): HolochainClientService {
 	const appId: string = 'true_commons';
 	let client: AppWebsocket | null = $state(null);
 	let isConnected: boolean = $state(false);
+	let isConnecting: boolean = $state(false);
+	let connectionError: string | null = $state(null);
 
 	/**
-	 * Connects the client to the Host backend.
+	 * Connects the client to the Holochain conductor.
+	 * Handles connection errors and updates state accordingly.
 	 */
 	async function connectClient(): Promise<void> {
-		client = await AppWebsocket.connect();
-		isConnected = true;
+		if (isConnecting || isConnected) {
+			return;
+		}
+
+		isConnecting = true;
+		connectionError = null;
+
+		try {
+			client = await AppWebsocket.connect();
+			isConnected = true;
+			console.log('Successfully connected to Holochain conductor');
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown connection error';
+			connectionError = `Failed to connect to Holochain conductor: ${errorMessage}`;
+			console.error(connectionError, error);
+			client = null;
+			isConnected = false;
+			throw error;
+		} finally {
+			isConnecting = false;
+		}
+	}
+
+	/**
+	 * Disconnects the client from the Holochain conductor.
+	 */
+	async function disconnect(): Promise<void> {
+		if (client) {
+			try {
+				await client.client.close();
+				console.log('Disconnected from Holochain conductor');
+			} catch (error) {
+				console.error('Error during disconnect:', error);
+			}
+		}
+
+		client = null;
+		isConnected = false;
+		isConnecting = false;
+		connectionError = null;
 	}
 
 	/**
@@ -50,10 +88,16 @@ function createHolochainClientService(): HolochainClientService {
 	 * @returns {Promise<AppInfoResponse>} - The application information.
 	 */
 	async function getAppInfo(): Promise<AppInfoResponse> {
-		if (!client) {
-			throw new Error('Client not connected');
+		if (!client || !isConnected) {
+			throw new Error('Client not connected. Call connectClient() first.');
 		}
-		return await client.appInfo();
+
+		try {
+			return await client.appInfo();
+		} catch (error) {
+			console.error('Error getting app info:', error);
+			throw error;
+		}
 	}
 
 	/**
@@ -61,7 +105,7 @@ function createHolochainClientService(): HolochainClientService {
 	 * @param {ZomeName} zomeName - The name of the zome.
 	 * @param {string} fnName - The name of the function within the zome.
 	 * @param {unknown} payload - The payload to send with the function call.
-	 * @param {Uint8Array | null} capSecret - The capability secret for authorization.
+	 * @param {Uint8Array | undefined} capSecret - The capability secret for authorization.
 	 * @param {RoleName} roleName - The name of the role to call the function on. Defaults to 'hrea'.
 	 * @returns {Promise<unknown>} - The result of the zome function call.
 	 */
@@ -72,8 +116,8 @@ function createHolochainClientService(): HolochainClientService {
 		capSecret: Uint8Array | undefined = undefined,
 		roleName: RoleName = 'hrea'
 	): Promise<unknown> {
-		if (!client) {
-			throw new Error('Client not connected');
+		if (!client || !isConnected) {
+			throw new Error('Client not connected. Call connectClient() first.');
 		}
 
 		try {
@@ -88,6 +132,13 @@ function createHolochainClientService(): HolochainClientService {
 			return record;
 		} catch (error) {
 			console.error(`Error calling zome function ${zomeName}.${fnName}:`, error);
+
+			// If we get a connection error, mark as disconnected
+			if (error instanceof Error && error.message.includes('connection')) {
+				isConnected = false;
+				client = null;
+			}
+
 			throw error;
 		}
 	}
@@ -103,9 +154,16 @@ function createHolochainClientService(): HolochainClientService {
 		get isConnected() {
 			return isConnected;
 		},
+		get isConnecting() {
+			return isConnecting;
+		},
+		get connectionError() {
+			return connectionError;
+		},
 
 		// Methods
 		connectClient,
+		disconnect,
 		getAppInfo,
 		callZome
 	};

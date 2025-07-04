@@ -1,67 +1,132 @@
 <script lang="ts">
-	import type {
-		NetworkStats,
-		TrueCommonsAgent,
-		TrueCommonsResource
-	} from '$lib/true_commons_service.svelte';
-	import trueCommonsService from '$lib/true_commons_service.svelte';
+	import type { Agent, EconomicResource, EconomicEvent } from '$lib/graphql/types';
+	import { agentsStore, economicResourcesStore, economicEventsStore } from '$lib/stores';
+	import holochainClientService from '$lib/services/holochain_client_service.svelte';
+	import hreaService from '$lib/services/hrea.service.svelte';
 	import { onMount } from 'svelte';
 
-	// Reactive state
+	// Reactive state derived from stores
 	let isConnected = $state(false);
-	let stats: NetworkStats = $state({
-		total_agents: 0,
-		total_resources: 0,
-		total_events: 0,
-		total_value_created: 0,
-		active_collaborations: 0
-	});
-	let recentResources: TrueCommonsResource[] = $state([]);
-	let activeAgents: TrueCommonsAgent[] = $state([]);
 	let isLoading = $state(true);
 	let connectionStatus = $state('Connecting to True Commons...');
+	let initializationError = $state<string | null>(null);
+
+	// Agent creation form state
+	let showCreateAgentForm = $state(false);
+	let agentFormData = $state({
+		name: '',
+		note: '',
+		primaryLocation: ''
+	});
+	let isCreatingAgent = $state(false);
+	let createAgentError = $state<string | null>(null);
+
+	// Derived stats from store data
+	let stats = $derived({
+		total_agents: agentsStore.agents.length,
+		total_resources: economicResourcesStore.resources.length,
+		total_events: economicEventsStore.events.length,
+		total_value_created: economicEventsStore.events.reduce((total, event) => {
+			return total + (event.resourceQuantity?.hasNumericalValue || 0);
+		}, 0),
+		active_collaborations: new Set(
+			economicEventsStore.events.map((event) => event.inScopeOf?.id).filter(Boolean)
+		).size
+	});
+
+	// Recent data for dashboard display
+	let recentResources = $derived(economicResourcesStore.resources.slice(0, 3));
+	let activeAgents = $derived(agentsStore.agents.slice(0, 5)); // Show more agents for testing
+
+	// Loading states from stores
+	let storesLoading = $derived(
+		agentsStore.loading || economicResourcesStore.loading || economicEventsStore.loading
+	);
+	let storesError = $derived(
+		agentsStore.error || economicResourcesStore.error || economicEventsStore.error
+	);
 
 	onMount(async () => {
 		try {
-			await trueCommonsService.connect();
-			isConnected = trueCommonsService.isConnected;
+			// Connect to Holochain
+			await holochainClientService.connectClient();
+			isConnected = holochainClientService.isConnected;
 
 			if (isConnected) {
 				connectionStatus = 'Connected to hREA backend';
+
+				// Initialize hREA service
+				await hreaService.initialize();
+
+				if (hreaService.isInitialized) {
+					// Load data from all stores
+					await Promise.all([
+						agentsStore.fetchAllAgents(),
+						agentsStore.fetchMyAgent(),
+						economicResourcesStore.fetchAllResources(),
+						economicEventsStore.fetchAllEvents()
+					]);
+				} else {
+					throw new Error(hreaService.initializationError || 'Failed to initialize hREA service');
+				}
 			} else {
 				connectionStatus = 'Running in demo mode';
+				initializationError = holochainClientService.connectionError;
 			}
-
-			// Load dashboard data
-			await loadDashboardData();
 		} catch (error) {
 			console.error('Failed to initialize True Commons:', error);
 			connectionStatus = 'Connection failed - demo mode active';
-			await loadDashboardData();
+			initializationError = error instanceof Error ? error.message : 'Unknown error';
 		} finally {
 			isLoading = false;
 		}
 	});
 
-	async function loadDashboardData() {
-		try {
-			const [networkStats, resources, agents] = await Promise.all([
-				trueCommonsService.getNetworkStats(),
-				trueCommonsService.getAllResources(),
-				trueCommonsService.getAllAgents()
-			]);
-
-			stats = networkStats;
-			recentResources = resources.slice(0, 3); // Show recent 3
-			activeAgents = agents.slice(0, 3); // Show top 3
-		} catch (error) {
-			console.error('Failed to load dashboard data:', error);
+	async function handleCreateAgent(evt: Event) {
+		evt.preventDefault();
+		if (!agentFormData.name.trim()) {
+			createAgentError = 'Agent name is required';
+			return;
 		}
+
+		isCreatingAgent = true;
+		createAgentError = null;
+
+		try {
+			await agentsStore.createAgent({
+				name: agentFormData.name.trim(),
+				note: agentFormData.note.trim() || undefined,
+				primaryLocation: agentFormData.primaryLocation.trim() || undefined
+			});
+
+			// Reset form and close modal on success
+			agentFormData = { name: '', note: '', primaryLocation: '' };
+			showCreateAgentForm = false;
+			console.log('Agent created successfully!');
+		} catch (error) {
+			createAgentError = error instanceof Error ? error.message : 'Failed to create agent';
+			console.error('Failed to create agent:', error);
+		} finally {
+			isCreatingAgent = false;
+		}
+	}
+
+	function resetAgentForm() {
+		agentFormData = { name: '', note: '', primaryLocation: '' };
+		createAgentError = null;
 	}
 
 	function formatDate(dateString?: string) {
 		if (!dateString) return 'Unknown';
 		return new Date(dateString).toLocaleDateString();
+	}
+
+	function getAgentInitial(agent: Agent): string {
+		return agent.name?.charAt(0)?.toUpperCase() || '?';
+	}
+
+	function getResourceAccountable(resource: EconomicResource): string {
+		return resource.primaryAccountable?.name || 'Anonymous';
 	}
 </script>
 
@@ -121,11 +186,34 @@
 	</header>
 
 	<main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-		{#if isLoading}
+		{#if isLoading || storesLoading}
 			<div class="flex items-center justify-center py-12">
 				<div class="text-center">
 					<div class="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
 					<p class="mt-4 text-gray-600 dark:text-gray-300">Loading True Commons...</p>
+				</div>
+			</div>
+		{:else if initializationError || storesError}
+			<div
+				class="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20"
+			>
+				<div class="flex">
+					<div class="flex-shrink-0">
+						<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+								clip-rule="evenodd"
+							/>
+						</svg>
+					</div>
+					<div class="ml-3">
+						<h3 class="text-sm font-medium text-red-800 dark:text-red-200">Connection Error</h3>
+						<div class="mt-2 text-sm text-red-700 dark:text-red-300">
+							<p>{initializationError || storesError}</p>
+							<p class="mt-1">Running in demo mode with limited functionality.</p>
+						</div>
+					</div>
 				</div>
 			</div>
 		{:else}
@@ -273,6 +361,168 @@
 				</div>
 			</section>
 
+			<!-- hREA Testing Section -->
+			<section class="mb-8">
+				<div class="mb-6 flex items-center justify-between">
+					<h2 class="text-2xl font-bold text-gray-900 dark:text-white">hREA Testing</h2>
+					<button
+						onclick={() => (showCreateAgentForm = true)}
+						class="rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700 disabled:opacity-50"
+						disabled={!isConnected || !hreaService.isInitialized}
+					>
+						Create Test Agent
+					</button>
+				</div>
+
+				<!-- Connection Status -->
+				<div
+					class="mb-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+				>
+					<div class="flex items-center space-x-3">
+						<div class="flex items-center space-x-2">
+							<div class="h-3 w-3 rounded-full {isConnected ? 'bg-green-500' : 'bg-red-500'}"></div>
+							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Holochain:</span>
+							<span class="text-sm text-gray-600 dark:text-gray-400">
+								{isConnected ? 'Connected' : 'Disconnected'}
+							</span>
+						</div>
+						<div class="flex items-center space-x-2">
+							<div
+								class="h-3 w-3 rounded-full {hreaService.isInitialized
+									? 'bg-green-500'
+									: 'bg-red-500'}"
+							></div>
+							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">hREA Service:</span
+							>
+							<span class="text-sm text-gray-600 dark:text-gray-400">
+								{hreaService.isInitialized ? 'Initialized' : 'Not Initialized'}
+							</span>
+						</div>
+						<div class="flex items-center space-x-2">
+							<div
+								class="h-3 w-3 rounded-full {agentsStore.loading
+									? 'bg-yellow-500'
+									: agentsStore.error
+										? 'bg-red-500'
+										: 'bg-green-500'}"
+							></div>
+							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Agents Store:</span
+							>
+							<span class="text-sm text-gray-600 dark:text-gray-400">
+								{agentsStore.loading ? 'Loading' : agentsStore.error ? 'Error' : 'Ready'}
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Agent Creation Form Modal -->
+				{#if showCreateAgentForm}
+					<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+						<div class="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+							<div class="mb-4 flex items-center justify-between">
+								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+									Create New Agent
+								</h3>
+								<button
+									aria-label="Close"
+									onclick={() => {
+										showCreateAgentForm = false;
+										resetAgentForm();
+									}}
+									class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+								>
+									<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										/>
+									</svg>
+								</button>
+							</div>
+
+							<form onsubmit={handleCreateAgent} class="space-y-4">
+								<div>
+									<label
+										for="agent-name"
+										class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>
+										Name *
+									</label>
+									<input
+										id="agent-name"
+										type="text"
+										bind:value={agentFormData.name}
+										required
+										class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+										placeholder="Enter agent name"
+									/>
+								</div>
+
+								<div>
+									<label
+										for="agent-note"
+										class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>
+										Description
+									</label>
+									<textarea
+										id="agent-note"
+										bind:value={agentFormData.note}
+										rows="3"
+										class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+										placeholder="Enter agent description"
+									></textarea>
+								</div>
+
+								<div>
+									<label
+										for="agent-location"
+										class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>
+										Location
+									</label>
+									<input
+										id="agent-location"
+										type="text"
+										bind:value={agentFormData.primaryLocation}
+										class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+										placeholder="Enter location"
+									/>
+								</div>
+
+								{#if createAgentError}
+									<div class="rounded-md bg-red-50 p-3 dark:bg-red-900/20">
+										<p class="text-sm text-red-800 dark:text-red-200">{createAgentError}</p>
+									</div>
+								{/if}
+
+								<div class="flex space-x-3">
+									<button
+										type="submit"
+										disabled={isCreatingAgent || !agentFormData.name.trim()}
+										class="flex-1 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+									>
+										{isCreatingAgent ? 'Creating...' : 'Create Agent'}
+									</button>
+									<button
+										type="button"
+										onclick={() => {
+											showCreateAgentForm = false;
+											resetAgentForm();
+										}}
+										class="flex-1 rounded-md border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+									>
+										Cancel
+									</button>
+								</div>
+							</form>
+						</div>
+					</div>
+				{/if}
+			</section>
+
 			<!-- Recent Resources & Active Agents -->
 			<div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
 				<!-- Recent Resources -->
@@ -293,42 +543,46 @@
 								<div class="flex items-start justify-between">
 									<div class="flex-1">
 										<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-											{resource.name}
+											{resource.name || 'Unnamed Resource'}
 										</h3>
-										<p class="mb-3 text-sm text-gray-600 dark:text-gray-300">{resource.note}</p>
+										<p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+											{resource.note || 'No description available'}
+										</p>
 										<div
 											class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
 										>
-											<span>By {resource.primaryAccountable?.name || 'Anonymous'}</span>
-											<span>•</span>
-											<span>{formatDate(resource.created_at)}</span>
-											{#if resource.license}
+											<span>By {getResourceAccountable(resource)}</span>
+											{#if resource.trackingIdentifier}
+												<span>•</span>
+												<span>ID: {resource.trackingIdentifier}</span>
+											{/if}
+											{#if resource.conformsTo?.name}
 												<span>•</span>
 												<span class="rounded bg-gray-100 px-2 py-1 text-xs dark:bg-gray-700"
-													>{resource.license}</span
+													>{resource.conformsTo.name}</span
 												>
 											{/if}
 										</div>
 									</div>
 									<div class="text-right text-sm text-gray-500 dark:text-gray-400">
-										{#if resource.usage_count}
-											<div>{resource.usage_count} uses</div>
+										{#if resource.accountingQuantity}
+											<div>
+												{resource.accountingQuantity.hasNumericalValue}
+												{resource.accountingQuantity.hasUnit?.symbol ||
+													resource.accountingQuantity.hasUnit?.label ||
+													'units'}
+											</div>
 										{/if}
-										{#if resource.fork_count}
-											<div>{resource.fork_count} forks</div>
+										{#if resource.onhandQuantity}
+											<div class="text-xs">
+												On-hand: {resource.onhandQuantity.hasNumericalValue}
+												{resource.onhandQuantity.hasUnit?.symbol ||
+													resource.onhandQuantity.hasUnit?.label ||
+													'units'}
+											</div>
 										{/if}
 									</div>
 								</div>
-								{#if resource.tags && resource.tags.length > 0}
-									<div class="mt-4 flex flex-wrap gap-2">
-										{#each resource.tags.slice(0, 3) as tag (tag)}
-											<span
-												class="rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-												>#{tag}</span
-											>
-										{/each}
-									</div>
-								{/if}
 							</div>
 						{:else}
 							<div
@@ -346,50 +600,62 @@
 				<!-- Active Agents -->
 				<section>
 					<div class="mb-6 flex items-center justify-between">
-						<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Active Agents</h2>
-						<a
-							href="/agents"
-							class="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-							>View all →</a
-						>
+						<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+							All Agents ({agentsStore.agents.length})
+						</h2>
+						<div class="flex items-center space-x-2">
+							{#if agentsStore.loading}
+								<div class="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
+								<span class="text-sm text-gray-500">Loading...</span>
+							{:else}
+								<button
+									onclick={() => agentsStore.fetchAllAgents()}
+									class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+								>
+									Refresh
+								</button>
+							{/if}
+						</div>
 					</div>
 					<div class="space-y-4">
 						{#each activeAgents as agent (agent.id)}
 							<div
-								class="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800"
+								class="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800"
 							>
-								<div class="flex items-center space-x-4">
+								<div class="flex items-center space-x-3">
 									<div
-										class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white"
+										class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-bold text-white"
 									>
-										{agent.name?.charAt(0) || '?'}
+										{getAgentInitial(agent)}
 									</div>
-									<div class="flex-1">
-										<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-											{agent.name}
+									<div class="min-w-0 flex-1">
+										<h3 class="truncate text-sm font-semibold text-gray-900 dark:text-white">
+											{agent.name || 'Anonymous Agent'}
 										</h3>
-										<p class="text-sm text-gray-600 dark:text-gray-300">{agent.note}</p>
+										{#if agent.note}
+											<p class="truncate text-xs text-gray-600 dark:text-gray-300">
+												{agent.note}
+											</p>
+										{/if}
 										{#if agent.primaryLocation}
-											<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+											<p class="truncate text-xs text-gray-500 dark:text-gray-400">
 												📍 {agent.primaryLocation}
 											</p>
 										{/if}
 									</div>
-									<div class="text-right text-sm text-gray-500 dark:text-gray-400">
-										{#if agent.reputation_score}
-											<div class="font-medium text-green-600 dark:text-green-400">
-												⭐ {agent.reputation_score}
-											</div>
-										{/if}
-										{#if agent.contributions_count}
-											<div>{agent.contributions_count} contributions</div>
-										{/if}
-										{#if agent.agent_type}
-											<div class="mt-1">
-												<span class="rounded bg-gray-100 px-2 py-1 text-xs dark:bg-gray-700"
-													>{agent.agent_type}</span
-												>
-											</div>
+									<div class="text-right">
+										<div class="text-xs text-gray-500 dark:text-gray-400">
+											ID: {agent.id.slice(0, 8)}...
+										</div>
+										{#if agent.canonicalUrl}
+											<a
+												href={agent.canonicalUrl}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="text-xs text-blue-600 hover:underline dark:text-blue-400"
+											>
+												Profile →
+											</a>
 										{/if}
 									</div>
 								</div>
@@ -399,8 +665,29 @@
 								class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400"
 							>
 								No agents found.
+								{#if isConnected && hreaService.isInitialized}
+									<button
+										onclick={() => (showCreateAgentForm = true)}
+										class="text-blue-600 dark:text-blue-400 hover:underline"
+									>
+										Create the first one!
+									</button>
+								{:else}
+									Connect to hREA to create agents.
+								{/if}
 							</div>
 						{/each}
+
+						{#if agentsStore.agents.length > 5}
+							<div class="pt-2 text-center">
+								<a
+									href="/agents"
+									class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+								>
+									View all {agentsStore.agents.length} agents →
+								</a>
+							</div>
+						{/if}
 					</div>
 				</section>
 			</div>
