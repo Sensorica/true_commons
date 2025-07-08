@@ -40,16 +40,24 @@
 	];
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" on:click={onClose}>
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+	role="dialog"
+	aria-modal="true"
+	tabindex="0"
+	onclick={onClose}
+	onkeydown={(e) => e.key === 'Escape' && onClose()}
+>
 	<div
 		class="relative mx-4 flex h-full max-h-[90vh] w-full max-w-3xl flex-col rounded-lg bg-white shadow-xl dark:bg-gray-800"
-		on:click|stopPropagation
+		role="document"
+		onclick={(e) => e.stopPropagation()}
 	>
 		<header class="flex items-center justify-between border-b p-4 dark:border-gray-700">
 			<h2 class="text-xl font-bold text-gray-900 dark:text-white">{resource.name}</h2>
 			<button
 				aria-label="Close"
-				on:click={onClose}
+				onclick={onClose}
 				class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
 			>
 				<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

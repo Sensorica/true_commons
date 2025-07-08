@@ -63,14 +63,14 @@
 			/>
 			{#if agentsStore.myAgent}
 				<button
-					on:click={handleCreateResource}
+					onclick={handleCreateResource}
 					class="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
 				>
 					+ Create Resource
 				</button>
 			{:else}
 				<button
-					on:click={handleCreateAgent}
+					onclick={handleCreateAgent}
 					class="rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
 				>
 					+ Create Agent to Contribute
@@ -94,7 +94,14 @@
 	{#if filteredResources.length > 0}
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 			{#each filteredResources as resource (resource.id)}
-				<div on:click={() => handleResourceClick(resource.id)} class="cursor-pointer">
+				<div
+					onclick={() => handleResourceClick(resource.id)}
+					onkeydown={(e) =>
+						(e.key === 'Enter' || e.key === ' ') && handleResourceClick(resource.id)}
+					class="cursor-pointer"
+					role="button"
+					tabindex="0"
+				>
 					<ResourceCard {resource} />
 				</div>
 			{/each}
@@ -140,14 +147,14 @@
 			</p>
 			{#if agentsStore.myAgent}
 				<button
-					on:click={handleCreateResource}
+					onclick={handleCreateResource}
 					class="mt-4 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
 				>
 					Create First Resource
 				</button>
 			{:else}
 				<button
-					on:click={handleCreateAgent}
+					onclick={handleCreateAgent}
 					class="mt-4 rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
 				>
 					Create Agent Profile First
@@ -173,7 +180,7 @@
 					You must create an agent profile before you can add resources.
 				</p>
 				<button
-					on:click={handleCreateAgent}
+					onclick={handleCreateAgent}
 					class="mt-4 rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
 				>
 					+ Create Your Agent Profile

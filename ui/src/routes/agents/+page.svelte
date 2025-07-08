@@ -2,12 +2,17 @@
 	import { agentsStore, economicEventsStore } from '$lib/stores';
 	import type { Agent } from '$lib/graphql/types';
 	import { onMount } from 'svelte';
+	import AgentProfileForm from '$lib/components/AgentProfileForm.svelte';
+	import AgentProfileDisplay from '$lib/components/AgentProfileDisplay.svelte';
 
 	let agentName = $state('');
 	let agentNote = $state('');
 	let agentLocation = $state('');
 	let showCreateForm = $state(false);
+	let showProfileForm = $state(false);
+	let editingAgent = $state<Agent | null>(null);
 	let selectedAgentForMyAgent = $state('');
+	let expandedAgents = $state<Set<string>>(new Set());
 
 	// Search and filter
 	let agentSearch = $state('');
@@ -29,7 +34,7 @@
 		myAgentSet: !!agentsStore.myAgent
 	});
 
-	// Create new agent
+	// Create new agent (legacy form)
 	async function createAgent() {
 		if (!agentName.trim()) {
 			alert('Please enter an agent name');
@@ -56,6 +61,63 @@
 			console.error('Failed to create agent:', error);
 			alert('Failed to create agent. Please try again.');
 		}
+	}
+
+	// Profile form handlers
+	function openCreateProfileForm() {
+		editingAgent = null;
+		showProfileForm = true;
+	}
+
+	function openEditProfileForm(agent: Agent) {
+		editingAgent = agent;
+		showProfileForm = true;
+	}
+
+	function closeProfileForm() {
+		showProfileForm = false;
+		editingAgent = null;
+	}
+
+	async function handleProfileSave(
+		event: CustomEvent<{ name: string; note: string; image?: string }>
+	) {
+		const { name, note, image } = event.detail;
+
+		try {
+			if (editingAgent) {
+				// Update existing agent
+				await agentsStore.updateAgent(editingAgent.id, {
+					name,
+					note,
+					image
+				});
+			} else {
+				// Create new agent
+				await agentsStore.createAgent({
+					name,
+					note,
+					image
+				});
+			}
+
+			closeProfileForm();
+			await agentsStore.fetchAllAgents();
+		} catch (error) {
+			console.error('Failed to save agent profile:', error);
+			alert('Failed to save agent profile. Please try again.');
+		}
+	}
+
+	// Toggle agent expansion
+	function toggleAgentExpansion(agentId: string) {
+		const newExpanded = new Set(expandedAgents);
+		if (newExpanded.has(agentId)) {
+			newExpanded.delete(agentId);
+		} else {
+			newExpanded.add(agentId);
+		}
+		expandedAgents = newExpanded;
 	}
 
 	// Set myAgent from dropdown
@@ -226,12 +288,20 @@
 	<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Create New Agent</h2>
-			<button
-				onclick={() => (showCreateForm = !showCreateForm)}
-				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-			>
-				{showCreateForm ? 'Cancel' : 'Create Agent'}
-			</button>
+			<div class="flex space-x-2">
+				<button
+					onclick={openCreateProfileForm}
+					class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+				>
+					Create Profile
+				</button>
+				<button
+					onclick={() => (showCreateForm = !showCreateForm)}
+					class="rounded-lg bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
+				>
+					{showCreateForm ? 'Cancel' : 'Quick Create'}
+				</button>
+			</div>
 		</div>
 
 		{#if showCreateForm}
@@ -360,43 +430,47 @@
 					>
 						<div class="flex items-start justify-between">
 							<div class="flex-1">
-								<h3 class="font-medium text-gray-900 dark:text-white">
-									{agent.name}
-									{#if agentsStore.myAgent?.id === agent.id}
-										<span
-											class="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-										>
-											My Agent
-										</span>
-									{/if}
-								</h3>
-								{#if agent.note}
-									<p class="mt-1 line-clamp-3 text-sm text-gray-600 dark:text-gray-300">
-										{agent.note}
-									</p>
-								{/if}
-								{#if agent.primaryLocation}
-									<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-										📍 {agent.primaryLocation}
-									</p>
+								<AgentProfileDisplay {agent} showFullProfile={expandedAgents.has(agent.id)} />
+								{#if agentsStore.myAgent?.id === agent.id}
+									<span
+										class="mt-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+									>
+										My Agent
+									</span>
 								{/if}
 							</div>
 						</div>
 						<div class="mt-4 flex items-center justify-between">
-							<span class="text-xs text-gray-500 dark:text-gray-400">
-								ID: {agent.id.slice(0, 8)}...
-							</span>
-							{#if agentsStore.myAgent?.id !== agent.id}
+							<div class="flex items-center space-x-2">
+								<span class="text-xs text-gray-500 dark:text-gray-400">
+									ID: {agent.id.slice(0, 8)}...
+								</span>
 								<button
-									onclick={() => {
-										selectedAgentForMyAgent = agent.id;
-										setMyAgent();
-									}}
-									class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+									onclick={() => toggleAgentExpansion(agent.id)}
+									class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
 								>
-									Set as My Agent
+									{expandedAgents.has(agent.id) ? 'Show Less' : 'Show More'}
 								</button>
-							{/if}
+							</div>
+							<div class="flex items-center space-x-2">
+								<button
+									onclick={() => openEditProfileForm(agent)}
+									class="text-sm text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+								>
+									Edit Profile
+								</button>
+								{#if agentsStore.myAgent?.id !== agent.id}
+									<button
+										onclick={() => {
+											selectedAgentForMyAgent = agent.id;
+											setMyAgent();
+										}}
+										class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+									>
+										Set as My Agent
+									</button>
+								{/if}
+							</div>
 						</div>
 					</div>
 				{/each}
@@ -428,3 +502,37 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Profile Form Modal -->
+{#if showProfileForm}
+	<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+		<div
+			class="max-h-screen w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800"
+		>
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+					{editingAgent ? 'Edit Agent Profile' : 'Create New Agent Profile'}
+				</h2>
+				<button
+					onclick={closeProfileForm}
+					aria-label="Close profile form"
+					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+				>
+					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						></path>
+					</svg>
+				</button>
+			</div>
+			<AgentProfileForm
+				agent={editingAgent}
+				on:save={handleProfileSave}
+				on:cancel={closeProfileForm}
+			/>
+		</div>
+	</div>
+{/if}

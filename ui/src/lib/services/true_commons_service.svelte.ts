@@ -1,5 +1,5 @@
 import holochainClientService from './holochain_client_service.svelte';
-import graphqlService from './graphql_service.svelte';
+import graphqlService from '../graphql_service.svelte';
 import {
 	GET_AGENTS,
 	GET_MY_AGENT,
@@ -140,7 +140,7 @@ function createTrueCommonsService(): TrueCommonsService {
 
 		try {
 			const result = await graphqlService.query<GetAgentsResponse>(GET_AGENTS);
-			return result.agents as TrueCommonsAgent[];
+			return result.agents.edges.map((edge) => edge.node) as TrueCommonsAgent[];
 		} catch (error) {
 			console.error('Failed to get agents:', error);
 			return getDemoData().agents;
@@ -175,7 +175,7 @@ function createTrueCommonsService(): TrueCommonsService {
 		try {
 			const result =
 				await graphqlService.query<GetEconomicResourcesResponse>(GET_ECONOMIC_RESOURCES);
-			return result.economicResources as TrueCommonsResource[];
+			return result.economicResources.edges.map((edge) => edge.node) as TrueCommonsResource[];
 		} catch (error) {
 			console.error('Failed to get resources:', error);
 			return getDemoData().resources;
@@ -294,7 +294,7 @@ function createTrueCommonsService(): TrueCommonsService {
 
 		try {
 			const result = await graphqlService.query<GetEconomicEventsResponse>(GET_ECONOMIC_EVENTS);
-			return result.economicEvents as TrueCommonsEvent[];
+			return result.economicEvents.edges.map((edge) => edge.node) as TrueCommonsEvent[];
 		} catch (error) {
 			console.error('Failed to get events:', error);
 			return getDemoData().events;
