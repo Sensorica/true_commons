@@ -41,6 +41,8 @@ The system uses a multi-DNA architecture to separate concerns and enable flexibl
 - **Agents**: People and organizations interacting with resources
 - **Processes**: Creation, modification, and usage workflows
 - **Commitments**: Promises for future economic activity
+- **Log**: a claim for contribution(s) that needs validation by peers in order to become a contribution. It describes what has been done, why and may include references to collaboratirs / withnesses. **Commitment** by an agent, validated by peers. 
+- **Contributions**: An addition to a value stream of a resource to which paticipants attribute value. It is the fulfillment of a **Commitment** by an agent, validated by peers. 
 
 #### 3. Collaboration System
 - **Real-time Editing**: Operational Transform-based collaborative editing
@@ -49,6 +51,8 @@ The system uses a multi-DNA architecture to separate concerns and enable flexibl
 - **Merge Requests**: Peer review process for contributions
 
 #### 4. Governance & Rules
+- **Core group**: Membrane that grants priviledges to some agents, based on their merit
+- **Benefit Redistribution Algorithm**: (BRA) Algorithm that turns past contributions into benefits. Among other benefits, BRAs grant access to the **Core group**. BRAs essentially instanciate a social contract between all contributors.
 - **Rule Engine**: Smart contract-like rules embedded in resources
 - **Voting Mechanisms**: Consensus-based decision making
 - **Reputation System**: Contribution-based reputation tracking
@@ -61,6 +65,8 @@ The system uses a multi-DNA architecture to separate concerns and enable flexibl
 - **Open Membrane**: Anyone can join the commons registry
 - **Capability-Based Access**: Fine-grained permissions for resource interaction
 - **Dynamic Membranes**: Resource-specific access control
+
+**Membranes** are also dynamic in the sense that they are linked to **Benefit Redistribution Algorithms** which automatically 
 
 ### ValueFlows Integration
 

@@ -33,12 +33,14 @@ The core of this architecture is the `TrueCommonsResource`, which is a **custom 
 
 -   **Content**: It stores metadata about the resource (name, description, etc.) and a hash that links to the actual content (e.g., a file on IPFS or another entry).
 -   **Economic Linking**: Crucially, this custom entry is linked to the hREA framework. When a `TrueCommonsResource` is created or modified, a corresponding hREA `EconomicEvent` is generated, which in turn is linked to an hREA `Process`. This creates a full, auditable trail of economic activity around the resource.
--   **Governance**: The entry also links to its specific governance and access control rules.
+-   **Governance**: The entry also links to its specific governance and access control rules. 
+-   **Coordination**: The entry also links to its specific coordination framework, implementing stigmergy. 
 
 ```mermaid
 graph TD
     subgraph Custom DNA Entries
         TCR[TrueCommonsResource] -- links to --> Rules[Access & Governance Rules]
+        TCR -- links to --> Coord[Coordination Framework<br/>Stigmergy]
     end
 
     subgraph hREA DNA Entries
