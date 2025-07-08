@@ -1,6 +1,11 @@
 import { gql } from '@apollo/client/core';
 import hreaService from '../services/hrea.service.svelte';
-import type { Agent, GetAgentsResponse, CreatePersonResponse } from '../graphql/types';
+import type {
+	Agent,
+	GetAgentsResponse,
+	CreatePersonResponse,
+	AgentCreateParams
+} from '../graphql/types';
 import { GET_AGENTS, GET_MY_AGENT } from '../graphql/queries';
 import { CREATE_PERSON } from '../graphql/mutations';
 
@@ -11,7 +16,7 @@ export interface AgentsStore {
 	readonly error: string | null;
 	fetchAllAgents(): Promise<void>;
 	fetchMyAgent(): Promise<void>;
-	createAgent(agent: Partial<Agent>): Promise<Agent>;
+	createAgent(agent: AgentCreateParams): Promise<Agent>;
 	updateAgent(id: string, agent: Partial<Agent>): Promise<Agent>;
 	deleteAgent(id: string): Promise<void>;
 }
@@ -134,7 +139,7 @@ function createAgentsStore(): AgentsStore {
 	/**
 	 * Creates a new agent (person) in the hREA system.
 	 */
-	async function createAgent(agentData: Partial<Agent>): Promise<Agent> {
+	async function createAgent(agentData: AgentCreateParams): Promise<Agent> {
 		if (loading) {
 			throw new Error('Another operation is in progress');
 		}

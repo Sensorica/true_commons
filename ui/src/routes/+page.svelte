@@ -4,6 +4,7 @@
 	import holochainClientService from '$lib/services/holochain_client_service.svelte';
 	import hreaService from '$lib/services/hrea.service.svelte';
 	import { onMount } from 'svelte';
+	import ResourcesCanvas from '$lib/components/ResourcesCanvas.svelte';
 
 	// Reactive state derived from stores
 	let isConnected = $state(false);
@@ -13,11 +14,7 @@
 
 	// Agent creation form state
 	let showCreateAgentForm = $state(false);
-	let agentFormData = $state({
-		name: '',
-		note: '',
-		primaryLocation: ''
-	});
+	let agentFormData = $state({ name: '', note: '', image: '' });
 	let isCreatingAgent = $state(false);
 	let createAgentError = $state<string | null>(null);
 
@@ -35,7 +32,7 @@
 	});
 
 	// Recent data for dashboard display
-	let recentResources = $derived(economicResourcesStore.resources.slice(0, 3));
+	// remove recentResources, it will be handled by the component
 	let activeAgents = $derived(agentsStore.agents.slice(0, 5)); // Show more agents for testing
 
 	// Loading states from stores
@@ -96,11 +93,11 @@
 			await agentsStore.createAgent({
 				name: agentFormData.name.trim(),
 				note: agentFormData.note.trim() || undefined,
-				primaryLocation: agentFormData.primaryLocation.trim() || undefined
+				image: agentFormData.image.trim() || undefined
 			});
 
 			// Reset form and close modal on success
-			agentFormData = { name: '', note: '', primaryLocation: '' };
+			agentFormData = { name: '', note: '', image: '' };
 			showCreateAgentForm = false;
 			console.log('Agent created successfully!');
 		} catch (error) {
@@ -112,7 +109,7 @@
 	}
 
 	function resetAgentForm() {
-		agentFormData = { name: '', note: '', primaryLocation: '' };
+		agentFormData = { name: '', note: '', image: '' };
 		createAgentError = null;
 	}
 
@@ -125,9 +122,7 @@
 		return agent.name?.charAt(0)?.toUpperCase() || '?';
 	}
 
-	function getResourceAccountable(resource: EconomicResource): string {
-		return resource.primaryAccountable?.name || 'Anonymous';
-	}
+	// remove getResourceAccountable, it is now in ResourceCard
 </script>
 
 <svelte:head>
@@ -361,6 +356,8 @@
 				</div>
 			</section>
 
+			<ResourcesCanvas on:createagent={() => (showCreateAgentForm = true)} />
+
 			<!-- hREA Testing Section -->
 			<section class="mb-8">
 				<div class="mb-6 flex items-center justify-between">
@@ -478,17 +475,17 @@
 
 								<div>
 									<label
-										for="agent-location"
+										for="agent-image"
 										class="block text-sm font-medium text-gray-700 dark:text-gray-300"
 									>
-										Location
+										Image URL
 									</label>
 									<input
-										id="agent-location"
-										type="text"
-										bind:value={agentFormData.primaryLocation}
+										id="agent-image"
+										type="url"
+										bind:value={agentFormData.image}
 										class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-										placeholder="Enter location"
+										placeholder="Enter image URL"
 									/>
 								</div>
 
@@ -522,175 +519,6 @@
 					</div>
 				{/if}
 			</section>
-
-			<!-- Recent Resources & Active Agents -->
-			<div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
-				<!-- Recent Resources -->
-				<section>
-					<div class="mb-6 flex items-center justify-between">
-						<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Recent Resources</h2>
-						<a
-							href="/resources"
-							class="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-							>View all →</a
-						>
-					</div>
-					<div class="space-y-4">
-						{#each recentResources as resource (resource.id)}
-							<div
-								class="rounded-lg border border-gray-200 bg-white p-6 shadow dark:border-gray-700 dark:bg-gray-800"
-							>
-								<div class="flex items-start justify-between">
-									<div class="flex-1">
-										<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-											{resource.name || 'Unnamed Resource'}
-										</h3>
-										<p class="mb-3 text-sm text-gray-600 dark:text-gray-300">
-											{resource.note || 'No description available'}
-										</p>
-										<div
-											class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400"
-										>
-											<span>By {getResourceAccountable(resource)}</span>
-											{#if resource.trackingIdentifier}
-												<span>•</span>
-												<span>ID: {resource.trackingIdentifier}</span>
-											{/if}
-											{#if resource.conformsTo?.name}
-												<span>•</span>
-												<span class="rounded bg-gray-100 px-2 py-1 text-xs dark:bg-gray-700"
-													>{resource.conformsTo.name}</span
-												>
-											{/if}
-										</div>
-									</div>
-									<div class="text-right text-sm text-gray-500 dark:text-gray-400">
-										{#if resource.accountingQuantity}
-											<div>
-												{resource.accountingQuantity.hasNumericalValue}
-												{resource.accountingQuantity.hasUnit?.symbol ||
-													resource.accountingQuantity.hasUnit?.label ||
-													'units'}
-											</div>
-										{/if}
-										{#if resource.onhandQuantity}
-											<div class="text-xs">
-												On-hand: {resource.onhandQuantity.hasNumericalValue}
-												{resource.onhandQuantity.hasUnit?.symbol ||
-													resource.onhandQuantity.hasUnit?.label ||
-													'units'}
-											</div>
-										{/if}
-									</div>
-								</div>
-							</div>
-						{:else}
-							<div
-								class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400"
-							>
-								No resources found. <a
-									href="/create"
-									class="text-blue-600 dark:text-blue-400 hover:underline">Create the first one!</a
-								>
-							</div>
-						{/each}
-					</div>
-				</section>
-
-				<!-- Active Agents -->
-				<section>
-					<div class="mb-6 flex items-center justify-between">
-						<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-							All Agents ({agentsStore.agents.length})
-						</h2>
-						<div class="flex items-center space-x-2">
-							{#if agentsStore.loading}
-								<div class="h-4 w-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
-								<span class="text-sm text-gray-500">Loading...</span>
-							{:else}
-								<button
-									onclick={() => agentsStore.fetchAllAgents()}
-									class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-								>
-									Refresh
-								</button>
-							{/if}
-						</div>
-					</div>
-					<div class="space-y-4">
-						{#each activeAgents as agent (agent.id)}
-							<div
-								class="rounded-lg border border-gray-200 bg-white p-4 shadow dark:border-gray-700 dark:bg-gray-800"
-							>
-								<div class="flex items-center space-x-3">
-									<div
-										class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-bold text-white"
-									>
-										{getAgentInitial(agent)}
-									</div>
-									<div class="min-w-0 flex-1">
-										<h3 class="truncate text-sm font-semibold text-gray-900 dark:text-white">
-											{agent.name || 'Anonymous Agent'}
-										</h3>
-										{#if agent.note}
-											<p class="truncate text-xs text-gray-600 dark:text-gray-300">
-												{agent.note}
-											</p>
-										{/if}
-										{#if agent.primaryLocation}
-											<p class="truncate text-xs text-gray-500 dark:text-gray-400">
-												📍 {agent.primaryLocation}
-											</p>
-										{/if}
-									</div>
-									<div class="text-right">
-										<div class="text-xs text-gray-500 dark:text-gray-400">
-											ID: {agent.id.slice(0, 8)}...
-										</div>
-										{#if agent.canonicalUrl}
-											<a
-												href={agent.canonicalUrl}
-												target="_blank"
-												rel="noopener noreferrer"
-												class="text-xs text-blue-600 hover:underline dark:text-blue-400"
-											>
-												Profile →
-											</a>
-										{/if}
-									</div>
-								</div>
-							</div>
-						{:else}
-							<div
-								class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400"
-							>
-								No agents found.
-								{#if isConnected && hreaService.isInitialized}
-									<button
-										onclick={() => (showCreateAgentForm = true)}
-										class="text-blue-600 dark:text-blue-400 hover:underline"
-									>
-										Create the first one!
-									</button>
-								{:else}
-									Connect to hREA to create agents.
-								{/if}
-							</div>
-						{/each}
-
-						{#if agentsStore.agents.length > 5}
-							<div class="pt-2 text-center">
-								<a
-									href="/agents"
-									class="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-								>
-									View all {agentsStore.agents.length} agents →
-								</a>
-							</div>
-						{/if}
-					</div>
-				</section>
-			</div>
 
 			<!-- True Commons Principles -->
 			<section

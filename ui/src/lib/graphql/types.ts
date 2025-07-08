@@ -3,8 +3,16 @@ export interface Agent {
 	id: string;
 	name: string;
 	note?: string;
+	image?: string;
 	primaryLocation?: string;
 	canonicalUrl?: string;
+}
+
+// Input types for mutations
+export interface AgentCreateParams {
+	name: string;
+	note?: string;
+	image?: string;
 }
 
 export interface EconomicResource {
