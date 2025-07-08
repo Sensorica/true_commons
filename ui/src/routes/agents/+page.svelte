@@ -25,7 +25,7 @@
 	let stats = $derived({
 		total: agentsStore.agents.length,
 		withProfiles: agentsStore.agents.filter((a) => a.note && a.note.length > 0).length,
-		recent: agentsStore.agents.sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5),
+		recent: [...agentsStore.agents].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5),
 		myAgentSet: !!agentsStore.myAgent
 	});
 
@@ -75,24 +75,20 @@
 	async function createSampleAgent() {
 		const sampleAgents = [
 			{
-				name: 'Alice Cooper',
-				note: 'Community organizer and permaculture designer with 10+ years experience in sustainable development.',
-				primaryLocation: 'Portland, Oregon'
+				name: 'Lynn Foster',
+				note: 'Co-creator of ValueFlows and hREA, systems thinker focused on economic coordination and open value networks.'
 			},
 			{
-				name: 'Bob Martinez',
-				note: 'Software developer specializing in decentralized systems and blockchain technology.',
-				primaryLocation: 'Austin, Texas'
+				name: 'Bob Haugen',
+				note: 'Co-creator of ValueFlows and hREA, software developer specializing in economic network protocols and distributed systems.'
 			},
 			{
 				name: 'Carol Chen',
-				note: 'Research scientist focused on open-source hardware and maker spaces.',
-				primaryLocation: 'San Francisco, California'
+				note: 'Research scientist focused on open-source hardware and maker spaces.'
 			},
 			{
 				name: 'David Kim',
-				note: 'Urban farmer and educator promoting local food systems and community resilience.',
-				primaryLocation: 'Seattle, Washington'
+				note: 'Urban farmer and educator promoting local food systems and community resilience.'
 			}
 		];
 
@@ -114,9 +110,10 @@
 	}
 
 	onMount(() => {
-		// Load agents when page mounts
-		agentsStore.fetchAllAgents();
-		agentsStore.fetchMyAgent();
+		// Agents are already loaded by the layout, but ensure they're loaded if needed
+		if (agentsStore.agents.length === 0) {
+			agentsStore.fetchAllAgents();
+		}
 	});
 </script>
 

@@ -1,12 +1,25 @@
 <script lang="ts">
 	import '../app.css';
-	import { page } from '$app/state';
+	import { page } from '$app/stores';
 	import { agentsStore } from '$lib/stores';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
 
 	// Get current route for active state
-	let currentPath = $derived(page.url.pathname);
+	let currentPath = $derived($page.url.pathname);
+
+	// Initialize agent data on mount
+	onMount(async () => {
+		try {
+			// Load all agents first, which will also restore myAgent from localStorage
+			await agentsStore.fetchAllAgents();
+			// Then try to fetch myAgent from GraphQL if not already restored
+			await agentsStore.fetchMyAgent();
+		} catch (error) {
+			console.warn('Failed to initialize agent data on layout mount:', error);
+		}
+	});
 </script>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">

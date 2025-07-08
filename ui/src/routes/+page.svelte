@@ -335,7 +335,7 @@
 			</button>
 
 			<a
-				href="https://github.com/your-repo/true_commons"
+				href="https://github.com/sensorica/true_commons"
 				target="_blank"
 				rel="noopener noreferrer"
 				class="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 text-center hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none dark:border-gray-600 dark:hover:border-gray-500"

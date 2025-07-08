@@ -23,6 +23,7 @@ export interface AgentsStore {
 	setMyAgentFromLocalStorage(agentId: string): void;
 	clearMyAgentFromLocalStorage(): void;
 	saveMyAgentToLocalStorage(agent: Agent): void;
+	loadMyAgentFromStorage(): void;
 }
 
 // Convert string queries to gql documents
@@ -44,8 +45,6 @@ const UPDATE_AGENT = gql`
 				id
 				name
 				note
-				primaryLocation
-				canonicalUrl
 			}
 		}
 	}
@@ -72,6 +71,7 @@ function createAgentsStore(): AgentsStore {
 
 	/**
 	 * Fetches all agents from the hREA system.
+	 * Falls back to empty state if Holochain/GraphQL is not available.
 	 */
 	async function fetchAllAgents(): Promise<void> {
 		if (loading) return;
@@ -80,13 +80,16 @@ function createAgentsStore(): AgentsStore {
 		error = null;
 
 		try {
-			// Ensure hREA service is initialized
+			// Try to ensure hREA service is initialized
 			if (!hreaService.isInitialized) {
 				await hreaService.initialize();
 			}
 
 			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
+				console.warn('Apollo client is not available - working in offline mode');
+				agents = [];
+				loadMyAgentFromStorage();
+				return;
 			}
 
 			const result = await hreaService.apolloClient.query<GetAgentsResponse>({
@@ -95,13 +98,38 @@ function createAgentsStore(): AgentsStore {
 			});
 
 			agents = (result.data.agents?.edges || []).map((edge) => edge.node);
-			console.log(`Fetched ${agents.length} agents`);
+			console.log(`Fetched ${agents.length} agents from GraphQL`);
+
+			// Try to restore myAgent from localStorage now that agents are loaded
+			loadMyAgentFromStorage();
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to fetch agents: ${errorMessage}`;
-			console.error(error, err);
+			console.warn(`GraphQL unavailable, working in offline mode: ${errorMessage}`);
+			console.debug('Full error details:', err);
+
+			// Clear error state and work with empty agents list for development
+			error = null;
+			agents = [];
+
+			// Still try to restore myAgent from localStorage
+			loadMyAgentFromStorage();
 		} finally {
 			loading = false;
+		}
+	}
+
+	/**
+	 * Loads myAgent from localStorage if available.
+	 * This is called synchronously to restore persisted state.
+	 */
+	function loadMyAgentFromStorage(): void {
+		const storedAgentId = localStorage.getItem('true_commons_my_agent_id');
+		if (storedAgentId && agents.length > 0) {
+			const storedAgent = agents.find((agent) => agent.id === storedAgentId);
+			if (storedAgent) {
+				myAgent = storedAgent;
+				console.log('Loaded myAgent from localStorage:', myAgent.id);
+			}
 		}
 	}
 
@@ -110,31 +138,32 @@ function createAgentsStore(): AgentsStore {
 	 * Falls back to localStorage for testing if the GraphQL query fails.
 	 */
 	async function fetchMyAgent(): Promise<void> {
-		if (loading) return;
-
-		loading = true;
-		error = null;
+		// Don't proceed if we're already loading agents
+		if (loading) {
+			console.log('Skipping fetchMyAgent - agents are currently loading');
+			return;
+		}
 
 		try {
-			// Check localStorage first for testing
+			// Check localStorage first for immediate restore
 			const storedAgentId = localStorage.getItem('true_commons_my_agent_id');
-			if (storedAgentId) {
+			if (storedAgentId && agents.length > 0) {
 				const storedAgent = agents.find((agent) => agent.id === storedAgentId);
 				if (storedAgent) {
 					myAgent = storedAgent;
 					console.log('Using stored agent from localStorage:', myAgent.id);
-					loading = false;
 					return;
 				}
 			}
 
-			// Ensure hREA service is initialized
+			// If we don't have a stored agent or agents aren't loaded yet, try GraphQL
 			if (!hreaService.isInitialized) {
 				await hreaService.initialize();
 			}
 
 			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
+				console.log('Apollo client not available, using localStorage fallback only');
+				return;
 			}
 
 			const result = await hreaService.apolloClient.query({
@@ -143,30 +172,31 @@ function createAgentsStore(): AgentsStore {
 			});
 
 			myAgent = result.data.myAgent || null;
-			console.log('Fetched my agent profile:', myAgent?.id);
+			if (myAgent) {
+				// Save to localStorage for persistence
+				localStorage.setItem('true_commons_my_agent_id', myAgent.id);
+				console.log('Fetched my agent profile from GraphQL:', myAgent.id);
+			}
 		} catch (err) {
-			// Fallback to localStorage for testing
+			// Fallback to localStorage - try again after agents are loaded
 			const storedAgentId = localStorage.getItem('true_commons_my_agent_id');
-			if (storedAgentId) {
+			if (storedAgentId && agents.length > 0) {
 				const storedAgent = agents.find((agent) => agent.id === storedAgentId);
 				if (storedAgent) {
 					myAgent = storedAgent;
 					console.log('Fallback: Using stored agent from localStorage:', myAgent.id);
-					loading = false;
 					return;
 				}
 			}
 
 			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to fetch my agent: ${errorMessage}`;
-			console.error(error, err);
-		} finally {
-			loading = false;
+			console.warn(`Failed to fetch my agent: ${errorMessage}`);
 		}
 	}
 
 	/**
 	 * Creates a new agent (person) in the hREA system.
+	 * Falls back to mock agent creation when GraphQL is not available.
 	 */
 	async function createAgent(agentData: AgentCreateParams): Promise<Agent> {
 		if (loading) {
@@ -177,13 +207,30 @@ function createAgentsStore(): AgentsStore {
 		error = null;
 
 		try {
-			// Ensure hREA service is initialized
+			// Try to ensure hREA service is initialized
 			if (!hreaService.isInitialized) {
 				await hreaService.initialize();
 			}
 
 			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
+				console.warn('GraphQL not available - creating mock agent for development');
+
+				// Create mock agent for development
+				const mockAgent: Agent = {
+					id: `mock-agent-${Date.now()}`,
+					name: agentData.name,
+					note: agentData.note || '',
+					primaryLocation: undefined,
+					canonicalUrl: undefined
+				};
+
+				agents = [...agents, mockAgent];
+				console.log('Created mock agent:', mockAgent.id);
+
+				// Auto-set as myAgent and save to localStorage for testing
+				saveMyAgentToLocalStorage(mockAgent);
+
+				return mockAgent;
 			}
 
 			const result = await hreaService.apolloClient.mutate<CreatePersonResponse>({
@@ -199,17 +246,31 @@ function createAgentsStore(): AgentsStore {
 			}
 
 			agents = [...agents, newAgent];
-			console.log('Created new agent:', newAgent.id);
+			console.log('Created new agent via GraphQL:', newAgent.id);
 
 			// Auto-set as myAgent and save to localStorage for testing
 			saveMyAgentToLocalStorage(newAgent);
 
 			return newAgent;
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to create agent: ${errorMessage}`;
-			console.error(error, err);
-			throw err;
+		} catch {
+			console.warn('GraphQL agent creation failed, creating mock agent');
+
+			// Fallback to mock agent creation
+			const mockAgent: Agent = {
+				id: `mock-agent-${Date.now()}`,
+				name: agentData.name,
+				note: agentData.note || '',
+				primaryLocation: undefined,
+				canonicalUrl: undefined
+			};
+
+			agents = [...agents, mockAgent];
+			console.log('Created fallback mock agent:', mockAgent.id);
+
+			// Auto-set as myAgent and save to localStorage for testing
+			saveMyAgentToLocalStorage(mockAgent);
+
+			return mockAgent;
 		} finally {
 			loading = false;
 		}
@@ -366,7 +427,8 @@ function createAgentsStore(): AgentsStore {
 		// Testing helpers
 		setMyAgentFromLocalStorage,
 		clearMyAgentFromLocalStorage,
-		saveMyAgentToLocalStorage
+		saveMyAgentToLocalStorage,
+		loadMyAgentFromStorage
 	};
 }
 

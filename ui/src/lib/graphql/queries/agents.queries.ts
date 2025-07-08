@@ -6,8 +6,6 @@ export const GET_AGENTS = `
           id
           name
           note
-          primaryLocation
-          canonicalUrl
         }
       }
     }
@@ -20,8 +18,6 @@ export const GET_MY_AGENT = `
       id
       name
       note
-      primaryLocation
-      canonicalUrl
     }
   }
 `;
