@@ -2,12 +2,15 @@
 	import { economicResourcesStore, agentsStore } from '$lib/stores';
 	import ResourceCard from './ResourceCard.svelte';
 	import ResourceDetail from './ResourceDetail.svelte';
+	import ResourceCreateForm from './ResourceCreateForm.svelte';
 	import type { EconomicResource } from '$lib/graphql/types';
 	import { createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();
 
 	let selectedResourceId = $state<string | null>(null);
+	let showCreateForm = $state(false);
+	let searchQuery = $state('');
 
 	function handleResourceClick(resourceId: string) {
 		selectedResourceId = resourceId;
@@ -20,6 +23,26 @@
 	function handleCreateAgent() {
 		dispatch('createagent');
 	}
+
+	function handleCreateResource() {
+		showCreateForm = true;
+	}
+
+	function handleCloseCreateForm() {
+		showCreateForm = false;
+	}
+
+	function handleResourceCreated(event: CustomEvent<EconomicResource>) {
+		// Resource was created successfully
+		console.log('Resource created:', event.detail);
+		showCreateForm = false;
+	}
+
+	let filteredResources = $derived(
+		!searchQuery.trim()
+			? economicResourcesStore.resources
+			: economicResourcesStore.searchResourcesByTag(searchQuery)
+	);
 
 	let selectedResource = $derived(
 		selectedResourceId
@@ -34,11 +57,15 @@
 		<div class="flex items-center gap-4">
 			<input
 				type="search"
-				placeholder="Search resources..."
-				class="w-64 rounded-md border-gray-300 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+				bind:value={searchQuery}
+				placeholder="Search resources by name, tags, or description..."
+				class="w-80 rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 			/>
 			{#if agentsStore.myAgent}
-				<button class="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
+				<button
+					on:click={handleCreateResource}
+					class="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+				>
 					+ Create Resource
 				</button>
 			{:else}
@@ -52,13 +79,80 @@
 		</div>
 	</div>
 
+	<!-- Resource Stats -->
 	{#if economicResourcesStore.resources.length > 0}
+		<div class="mb-4 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+			<span>Total: {economicResourcesStore.resources.length} resources</span>
+			{#if searchQuery.trim()}
+				<span>•</span>
+				<span>Showing: {filteredResources.length} filtered results</span>
+			{/if}
+		</div>
+	{/if}
+
+	<!-- Resources Grid -->
+	{#if filteredResources.length > 0}
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-			{#each economicResourcesStore.resources as resource (resource.id)}
-				<div on:click={() => handleResourceClick(resource.id)}>
+			{#each filteredResources as resource (resource.id)}
+				<div on:click={() => handleResourceClick(resource.id)} class="cursor-pointer">
 					<ResourceCard {resource} />
 				</div>
 			{/each}
+		</div>
+	{:else if searchQuery.trim()}
+		<div class="py-12 text-center">
+			<svg
+				class="mx-auto h-12 w-12 text-gray-400"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				/>
+			</svg>
+			<h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No resources found</h3>
+			<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+				Try a different search term or create a new resource.
+			</p>
+		</div>
+	{:else if economicResourcesStore.resources.length === 0}
+		<div class="py-12 text-center">
+			<svg
+				class="mx-auto h-12 w-12 text-gray-400"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+				/>
+			</svg>
+			<h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No resources yet</h3>
+			<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+				Get started by creating your first digital resource.
+			</p>
+			{#if agentsStore.myAgent}
+				<button
+					on:click={handleCreateResource}
+					class="mt-4 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+				>
+					Create First Resource
+				</button>
+			{:else}
+				<button
+					on:click={handleCreateAgent}
+					class="mt-4 rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700"
+				>
+					Create Agent Profile First
+				</button>
+			{/if}
 		</div>
 	{:else}
 		<div
@@ -91,4 +185,8 @@
 
 {#if selectedResource}
 	<ResourceDetail resource={selectedResource} onClose={handleCloseDetail} />
+{/if}
+
+{#if showCreateForm}
+	<ResourceCreateForm on:created={handleResourceCreated} on:close={handleCloseCreateForm} />
 {/if}

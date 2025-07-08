@@ -27,6 +27,17 @@ export interface EconomicResource {
 	accountingQuantity?: Measure;
 	onhandQuantity?: Measure;
 	unitOfEffort?: Unit;
+	// True Commons specific fields
+	tags?: string[];
+	license?: string;
+	resourceType?: string;
+	contentHash?: string;
+	content?: string;
+	version?: string;
+	fork_count?: number;
+	usage_count?: number;
+	created_at?: string;
+	updated_at?: string;
 }
 
 export interface EconomicEvent {
