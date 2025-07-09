@@ -1,10 +1,19 @@
 <script lang="ts">
 	import ResourcesCanvas from '$lib/components/ResourcesCanvas.svelte';
-	import { agentsStore, economicResourcesStore, economicEventsStore } from '$lib/stores';
+	import { agentsStore, resourcesStore, economicEventsStore } from '$lib/stores';
 	import { onMount } from 'svelte';
+	import ResourceCreateForm from '$lib/components/ResourceCreateForm.svelte';
+	import ResourceDetail from '$lib/components/ResourceDetail.svelte';
+	import type { EconomicResource } from '$lib/graphql/types';
 
+	// State
 	let resourceSearch = $state('');
 	let selectedResourceType = $state('all');
+	let showCreateForm = $state(false);
+	let selectedResource = $state<EconomicResource | null>(null);
+
+	// Mock data for testing
+	let mockResources = $state([]);
 
 	// Resource type options for filtering
 	const resourceTypes = [
@@ -20,34 +29,42 @@
 		{ value: 'Template', label: 'Template' }
 	];
 
-	// Statistics
+	// Computed stats
 	let stats = $derived({
-		total: economicResourcesStore.resources.length,
-		byType: resourceTypes.slice(1).map((type) => ({
-			type: type.label,
-			count: economicResourcesStore.resources.filter((r) => r.resourceType === type.value).length
+		total: resourcesStore.resources.length,
+		byType: resourceTypes.map((type) => ({
+			...type,
+			count: resourcesStore.resources.filter((r) => r.resourceType === type.value).length
 		})),
-		recentCreated: economicResourcesStore.resources
-			.filter((r) => r.created_at)
-			.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+		recentCreated: resourcesStore.resources
+			.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
 			.slice(0, 5)
 	});
+
+	// Filtered resources
+	let filteredResources = $derived(
+		resourceSearch.trim()
+			? resourcesStore.searchResourcesByTag(resourceSearch)
+			: selectedResourceType === 'all'
+				? resourcesStore.resources
+				: resourcesStore.getResourcesByType(selectedResourceType)
+	);
 
 	// Handle search and filtering
 	function handleSearch() {
 		if (resourceSearch.trim()) {
-			economicResourcesStore.searchResourcesByTag(resourceSearch);
+			resourcesStore.searchResourcesByTag(resourceSearch);
 		} else {
 			// Reset to show all resources
-			economicResourcesStore.fetchAllResources();
+			resourcesStore.fetchAllResources();
 		}
 	}
 
 	function handleTypeFilter() {
 		if (selectedResourceType === 'all') {
-			economicResourcesStore.fetchAllResources();
+			resourcesStore.fetchAllResources();
 		} else {
-			economicResourcesStore.getResourcesByType(selectedResourceType);
+			resourcesStore.getResourcesByType(selectedResourceType);
 		}
 	}
 
@@ -84,18 +101,25 @@
 		];
 
 		const randomSample = sampleResources[Math.floor(Math.random() * sampleResources.length)];
-		await economicResourcesStore.createResource(randomSample);
+		await resourcesStore.createResource(randomSample);
 	}
 
 	function clearAllResources() {
-		economicResourcesStore.clearMockResources();
+		resourcesStore.clearMockResources();
 	}
 
 	onMount(() => {
-		// Load resources when page mounts
-		economicResourcesStore.fetchAllResources();
+		resourcesStore.fetchAllResources();
 		agentsStore.fetchAllAgents();
 	});
+
+	function handleResourceTypeChange() {
+		resourcesStore.fetchAllResources();
+		filteredResources =
+			selectedResourceType === 'all'
+				? resourcesStore.resources
+				: resourcesStore.getResourcesByType(selectedResourceType);
+	}
 </script>
 
 <svelte:head>
@@ -187,7 +211,7 @@
 					{#if type.count > 0}
 						<div class="text-center">
 							<div class="text-xl font-bold text-gray-900 dark:text-white">{type.count}</div>
-							<div class="text-sm text-gray-600 dark:text-gray-400">{type.type}</div>
+							<div class="text-sm text-gray-600 dark:text-gray-400">{type.label}</div>
 						</div>
 					{/if}
 				{/each}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { economicResourcesStore, agentsStore } from '$lib/stores';
+	import { resourcesStore, agentsStore } from '$lib/stores';
 	import ResourceCard from './ResourceCard.svelte';
 	import ResourceDetail from './ResourceDetail.svelte';
 	import ResourceCreateForm from './ResourceCreateForm.svelte';
@@ -8,9 +8,10 @@
 
 	const dispatch = createEventDispatcher();
 
+	// Component state
+	let searchQuery = $state('');
 	let selectedResourceId = $state<string | null>(null);
 	let showCreateForm = $state(false);
-	let searchQuery = $state('');
 
 	function handleResourceClick(resourceId: string) {
 		selectedResourceId = resourceId;
@@ -38,15 +39,14 @@
 		showCreateForm = false;
 	}
 
+	// Computed properties
 	let filteredResources = $derived(
-		!searchQuery.trim()
-			? economicResourcesStore.resources
-			: economicResourcesStore.searchResourcesByTag(searchQuery)
+		searchQuery.trim() ? resourcesStore.searchResourcesByTag(searchQuery) : resourcesStore.resources
 	);
 
 	let selectedResource = $derived(
 		selectedResourceId
-			? economicResourcesStore.resources.find((r) => r.id === selectedResourceId) || null
+			? resourcesStore.resources.find((r) => r.id === selectedResourceId) || null
 			: null
 	);
 </script>
@@ -80,9 +80,9 @@
 	</div>
 
 	<!-- Resource Stats -->
-	{#if economicResourcesStore.resources.length > 0}
+	{#if resourcesStore.resources.length > 0}
 		<div class="mb-4 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-			<span>Total: {economicResourcesStore.resources.length} resources</span>
+			<span>Total: {resourcesStore.resources.length} resources</span>
 			{#if searchQuery.trim()}
 				<span>•</span>
 				<span>Showing: {filteredResources.length} filtered results</span>
@@ -126,7 +126,7 @@
 				Try a different search term or create a new resource.
 			</p>
 		</div>
-	{:else if economicResourcesStore.resources.length === 0}
+	{:else if resourcesStore.resources.length === 0}
 		<div class="py-12 text-center">
 			<svg
 				class="mx-auto h-12 w-12 text-gray-400"

@@ -1,24 +1,28 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { economicResourcesStore, economicEventsStore, agentsStore } from '$lib/stores';
+	import agentsStore from '$lib/stores/agents.store.svelte';
+	import resourcesStore from '$lib/stores/resources.store.svelte';
 	import type { EconomicResource } from '$lib/graphql/types';
 
 	const dispatch = createEventDispatcher();
 
 	// Form state
-	let formData = $state({
+	let form = $state({
 		name: '',
 		note: '',
+		primaryAccountable: '',
+		custodian: '',
+		license: 'CC-BY',
 		resourceType: 'Document',
 		content: '',
-		license: 'CC-BY',
-		tags: '',
 		trackingIdentifier: '',
+		tags: '',
 		currentLocation: ''
 	});
 
-	let isCreating = $state(false);
-	let createError = $state<string | null>(null);
+	let loading = $state(false);
+	let error = $state<string | null>(null);
+	let formErrors = $state<Record<string, string>>({});
 	let showAdvanced = $state(false);
 
 	// Resource type options
@@ -47,100 +51,78 @@
 	];
 
 	function resetForm() {
-		formData = {
+		form = {
 			name: '',
 			note: '',
+			primaryAccountable: '',
+			custodian: '',
+			license: 'CC-BY',
 			resourceType: 'Document',
 			content: '',
-			license: 'CC-BY',
-			tags: '',
 			trackingIdentifier: '',
+			tags: '',
 			currentLocation: ''
 		};
-		createError = null;
-		showAdvanced = false;
+		error = null;
+		formErrors = {};
 	}
 
-	async function handleSubmit(evt: Event) {
-		evt.preventDefault();
+	async function handleSubmit(event: Event) {
+		event.preventDefault();
 
-		if (!formData.name.trim()) {
-			createError = 'Resource name is required';
+		if (!form.name.trim()) {
+			formErrors.name = 'Name is required';
 			return;
 		}
 
-		if (!formData.note.trim()) {
-			createError = 'Resource description is required';
-			return;
-		}
-
-		if (!formData.content.trim()) {
-			createError = 'Resource content is required';
-			return;
-		}
-
-		if (!agentsStore.myAgent) {
-			createError = 'You must be authenticated as an agent to create resources';
-			return;
-		}
-
-		isCreating = true;
-		createError = null;
+		loading = true;
+		error = null;
+		formErrors = {};
 
 		try {
-			// Parse tags
-			const tags = formData.tags
-				.split(',')
-				.map((tag) => tag.trim())
-				.filter((tag) => tag.length > 0);
-
-			// Generate a simple content hash for demo purposes
-			const contentHash = btoa(formData.content).substring(0, 32);
-
-			// Create the resource data
-			const resourceData: Partial<EconomicResource> = {
-				name: formData.name.trim(),
-				note: formData.note.trim(),
-				trackingIdentifier: formData.trackingIdentifier.trim() || undefined,
-				currentLocation: formData.currentLocation.trim() || undefined,
-				// Set the current agent as the primary accountable
-				primaryAccountable: agentsStore.myAgent,
-				custodian: agentsStore.myAgent,
-				// Add metadata for True Commons specific fields
-				...(tags.length > 0 && { tags }),
-				license: formData.license,
-				resourceType: formData.resourceType,
-				contentHash,
-				content: formData.content.trim()
+			// Create resource data object
+			const resourceData = {
+				name: form.name,
+				note: JSON.stringify({
+					note: form.note,
+					primaryAccountable: form.primaryAccountable,
+					custodian: form.custodian,
+					license: form.license,
+					resourceType: form.resourceType,
+					contentHash: btoa(form.content),
+					content: form.content
+				}),
+				trackingIdentifier: form.trackingIdentifier || undefined
 			};
 
-			// Create the resource
-			const newResource = await economicResourcesStore.createResource(resourceData);
+			console.log('Creating resource with data:', resourceData);
 
-			// Create an economic event for the resource creation
-			await economicEventsStore.createEvent({
-				action: { id: 'produce', label: 'Produce', resourceEffect: 'increment' },
-				provider: agentsStore.myAgent,
-				resourceInventoriedAs: newResource,
-				resourceQuantity: {
-					hasNumericalValue: 1,
-					hasUnit: { id: 'one', label: 'Each', symbol: 'ea' }
-				},
-				hasPointInTime: new Date().toISOString(),
-				note: `Created resource: ${newResource.name}`
-			});
+			// Use the new createResource method that handles ResourceSpecifications
+			const newResource = await resourcesStore.createResource(resourceData);
 
-			// Reset form and notify parent
-			resetForm();
-			dispatch('created', newResource);
-			dispatch('close');
+			console.log('Resource created successfully:', newResource);
 
-			console.log('Resource created successfully!');
-		} catch (error) {
-			createError = error instanceof Error ? error.message : 'Failed to create resource';
-			console.error('Failed to create resource:', error);
+			// Reset form
+			form = {
+				name: '',
+				note: '',
+				primaryAccountable: '',
+				custodian: '',
+				license: 'CC-BY',
+				resourceType: 'Document',
+				content: '',
+				trackingIdentifier: '',
+				tags: '',
+				currentLocation: ''
+			};
+
+			// Dispatch success event
+			dispatch('resource-created', { resource: newResource });
+		} catch (err) {
+			console.error('Failed to create resource:', err);
+			error = err instanceof Error ? err.message : 'Failed to create resource';
 		} finally {
-			isCreating = false;
+			loading = false;
 		}
 	}
 
@@ -184,7 +166,7 @@
 				<input
 					id="resource-name"
 					type="text"
-					bind:value={formData.name}
+					bind:value={form.name}
 					required
 					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 					placeholder="Enter resource name"
@@ -201,7 +183,7 @@
 				</label>
 				<textarea
 					id="resource-note"
-					bind:value={formData.note}
+					bind:value={form.note}
 					required
 					rows="3"
 					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
@@ -219,7 +201,7 @@
 				</label>
 				<select
 					id="resource-type"
-					bind:value={formData.resourceType}
+					bind:value={form.resourceType}
 					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 				>
 					{#each resourceTypes as type}
@@ -238,7 +220,7 @@
 				</label>
 				<textarea
 					id="resource-content"
-					bind:value={formData.content}
+					bind:value={form.content}
 					required
 					rows="6"
 					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
@@ -256,7 +238,7 @@
 				</label>
 				<select
 					id="resource-license"
-					bind:value={formData.license}
+					bind:value={form.license}
 					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 				>
 					{#each licenseOptions as license}
@@ -276,7 +258,7 @@
 				<input
 					id="resource-tags"
 					type="text"
-					bind:value={formData.tags}
+					bind:value={form.tags}
 					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 					placeholder="comma, separated, tags"
 				/>
@@ -322,7 +304,7 @@
 						<input
 							id="tracking-identifier"
 							type="text"
-							bind:value={formData.trackingIdentifier}
+							bind:value={form.trackingIdentifier}
 							class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 							placeholder="Optional unique identifier"
 						/>
@@ -338,7 +320,7 @@
 						<input
 							id="current-location"
 							type="text"
-							bind:value={formData.currentLocation}
+							bind:value={form.currentLocation}
 							class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
 							placeholder="Physical or digital location"
 						/>
@@ -347,9 +329,9 @@
 			{/if}
 
 			<!-- Error Display -->
-			{#if createError}
+			{#if error}
 				<div class="rounded-md bg-red-50 p-3 dark:bg-red-900/20">
-					<p class="text-sm text-red-800 dark:text-red-200">{createError}</p>
+					<p class="text-sm text-red-800 dark:text-red-200">{error}</p>
 				</div>
 			{/if}
 
@@ -357,13 +339,10 @@
 			<div class="flex space-x-3 pt-4">
 				<button
 					type="submit"
-					disabled={isCreating ||
-						!formData.name.trim() ||
-						!formData.note.trim() ||
-						!formData.content.trim()}
+					disabled={loading || !form.name.trim() || !form.note.trim() || !form.content.trim()}
 					class="flex-1 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
 				>
-					{isCreating ? 'Creating...' : 'Create Resource'}
+					{loading ? 'Creating...' : 'Create Resource'}
 				</button>
 				<button
 					type="button"

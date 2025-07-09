@@ -1,29 +1,37 @@
 <script lang="ts">
-	import { agentsStore, economicResourcesStore, economicEventsStore } from '$lib/stores';
+	import { agentsStore, resourcesStore, economicEventsStore } from '$lib/stores';
 	import { onMount } from 'svelte';
 
-	// Dashboard statistics
+	// Quick stats for dashboard
 	let stats = $derived({
 		agents: {
 			total: agentsStore.agents.length,
 			authenticated: !!agentsStore.myAgent
 		},
 		resources: {
-			total: economicResourcesStore.resources.length,
-			recent: economicResourcesStore.resources
+			total: resourcesStore.resources.length,
+			recent: resourcesStore.resources
 				.filter((r) => r.created_at)
 				.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
-				.slice(0, 3),
-			byType: ['Document', 'Software', 'Knowledge', 'Tool'].map((type) => ({
-				type,
-				count: economicResourcesStore.resources.filter((r) => r.resourceType === type).length
-			}))
+				.slice(0, 3)
 		},
+		byType: ['Document', 'Software', 'Knowledge', 'Hardware'].map((type) => ({
+			type,
+			count: resourcesStore.resources.filter((r) => r.resourceType === type).length
+		})),
 		activity: {
 			events: economicEventsStore.events.length,
 			recentEvents: economicEventsStore.events.slice(0, 5)
 		}
 	});
+
+	// Resource type options
+	const resourceTypes = [
+		{ value: 'Document', label: 'Documents', icon: '📄' },
+		{ value: 'Software', label: 'Software', icon: '💻' },
+		{ value: 'Knowledge', label: 'Knowledge', icon: '🧠' },
+		{ value: 'Hardware', label: 'Hardware', icon: '🔧' }
+	];
 
 	// Quick actions
 	function goToResources() {
@@ -36,9 +44,9 @@
 
 	// Load data on mount
 	onMount(() => {
+		// Load initial data
 		agentsStore.fetchAllAgents();
-		agentsStore.fetchMyAgent();
-		economicResourcesStore.fetchAllResources();
+		resourcesStore.fetchAllResources();
 		economicEventsStore.fetchAllEvents();
 	});
 </script>
@@ -156,7 +164,7 @@
 			</div>
 			<div class="mt-4">
 				<div class="text-sm text-gray-600 dark:text-gray-400">
-					{#each stats.resources.byType.filter((t) => t.count > 0) as type}
+					{#each stats.byType.filter((t) => t.count > 0) as type}
 						<span class="mr-3">{type.type}: {type.count}</span>
 					{/each}
 				</div>

@@ -146,6 +146,45 @@ export const isJsonMetadata = (note?: string): boolean => {
 	}
 };
 
+export interface ResourceMetadata {
+	note?: string; // the original note
+	currentLocation?: string;
+	primaryAccountable?: string; // Agent ID
+	custodian?: string; // Agent ID
+	tags?: string[];
+	license?: string;
+	resourceType?: string;
+	contentHash?: string;
+	content?: string;
+}
+
+// Helper type for resource with parsed metadata
+export interface ResourceWithMetadata extends EconomicResource {
+	parsedMetadata?: ResourceMetadata;
+}
+
+// Utility functions for metadata handling
+export const parseResourceMetadata = (note?: string): ResourceMetadata | null => {
+	if (!note) return null;
+
+	try {
+		// Try to parse as JSON first
+		const parsed = JSON.parse(note);
+		// If it's an object, treat it as metadata
+		if (typeof parsed === 'object' && parsed !== null) {
+			return parsed as ResourceMetadata;
+		}
+	} catch {
+		// If parsing fails, it's likely plain text
+	}
+
+	return null;
+};
+
+export const stringifyResourceMetadata = (metadata: ResourceMetadata): string => {
+	return JSON.stringify(metadata, null, 2);
+};
+
 export interface EconomicResource {
 	id: string;
 	name?: string;
@@ -260,4 +299,33 @@ export interface UpdateEconomicResourceResponse {
 	updateEconomicResource: {
 		economicResource: EconomicResource;
 	};
+}
+
+// Resource Specification Response Types
+export interface GetResourceSpecificationResponse {
+	resourceSpecification: ResourceSpecification;
+}
+
+export interface GetResourceSpecificationsResponse {
+	resourceSpecifications: {
+		edges: {
+			node: ResourceSpecification;
+		}[];
+	};
+}
+
+export interface CreateResourceSpecificationResponse {
+	createResourceSpecification: {
+		resourceSpecification: ResourceSpecification;
+	};
+}
+
+export interface UpdateResourceSpecificationResponse {
+	updateResourceSpecification: {
+		resourceSpecification: ResourceSpecification;
+	};
+}
+
+export interface DeleteResourceSpecificationResponse {
+	deleteResourceSpecification: boolean;
 }
