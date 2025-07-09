@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client/core';
 
-export const CREATE_UNIT = gql`
+export const CREATE_UNIT_MUTATION = gql`
 	mutation CreateUnit($unit: UnitCreateParams!) {
 		createUnit(unit: $unit) {
 			unit {
@@ -12,7 +12,7 @@ export const CREATE_UNIT = gql`
 	}
 `;
 
-export const UPDATE_UNIT = gql`
+export const UPDATE_UNIT_MUTATION = gql`
 	mutation UpdateUnit($id: ID!, $unit: UnitUpdateParams!) {
 		updateUnit(id: $id, unit: $unit) {
 			unit {
@@ -24,7 +24,7 @@ export const UPDATE_UNIT = gql`
 	}
 `;
 
-export const DELETE_UNIT = gql`
+export const DELETE_UNIT_MUTATION = gql`
 	mutation DeleteUnit($id: ID!) {
 		deleteUnit(id: $id)
 	}

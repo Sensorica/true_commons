@@ -9,7 +9,7 @@ import type {
     ActionUpdateParams
 } from '../graphql/types';
 import { GET_ACTIONS } from '../graphql/queries';
-import { CREATE_ACTION, UPDATE_ACTION, DELETE_ACTION } from '../graphql/mutations';
+import { CREATE_ACTION_MUTATION, UPDATE_ACTION_MUTATION, DELETE_ACTION_MUTATION } from '../graphql/mutations';
 
 export interface ActionsStore {
     readonly actions: Action[];
@@ -26,18 +26,6 @@ export interface ActionsStore {
 // Convert string queries to gql documents
 const GET_ALL_ACTIONS = gql`
 	${GET_ACTIONS}
-`;
-
-const CREATE_ACTION_MUTATION = gql`
-	${CREATE_ACTION}
-`;
-
-const UPDATE_ACTION_MUTATION = gql`
-	${UPDATE_ACTION}
-`;
-
-const DELETE_ACTION_MUTATION = gql`
-	${DELETE_ACTION}
 `;
 
 /**

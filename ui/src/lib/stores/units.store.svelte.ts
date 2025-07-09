@@ -9,7 +9,7 @@ import type {
     UnitUpdateParams
 } from '../graphql/types';
 import { GET_UNITS } from '../graphql/queries';
-import { CREATE_UNIT, UPDATE_UNIT, DELETE_UNIT } from '../graphql/mutations';
+import { CREATE_UNIT_MUTATION, UPDATE_UNIT_MUTATION, DELETE_UNIT_MUTATION } from '../graphql/mutations';
 
 export interface UnitsStore {
     readonly units: Unit[];
@@ -26,18 +26,6 @@ export interface UnitsStore {
 // Convert string queries to gql documents
 const GET_ALL_UNITS = gql`
 	${GET_UNITS}
-`;
-
-const CREATE_UNIT_MUTATION = gql`
-	${CREATE_UNIT}
-`;
-
-const UPDATE_UNIT_MUTATION = gql`
-	${UPDATE_UNIT}
-`;
-
-const DELETE_UNIT_MUTATION = gql`
-	${DELETE_UNIT}
 `;
 
 /**
@@ -109,7 +97,7 @@ function createUnitsStore(): UnitsStore {
                         units = [];
                         console.warn('No units found in GraphQL response, initializing empty array');
                     }
-                    
+
                     console.log(`Fetched ${units.length} units`);
                 } catch (err) {
                     console.error('Failed to fetch units from GraphQL:', err);
