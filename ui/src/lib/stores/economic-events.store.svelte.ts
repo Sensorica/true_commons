@@ -1,9 +1,18 @@
 import { gql } from '@apollo/client/core';
 import hreaService from '../services/hrea.service.svelte';
+import foundationService from '../services/foundation.service.svelte';
+import unitsStore from './units.store.svelte';
+import actionsStore from './actions.store.svelte';
+import agentsStore from './agents.store.svelte';
+import resourcesStore from './resources.store.svelte';
 import type {
 	EconomicEvent,
+	EconomicEventCreateParams,
+	EconomicEventUpdateParams,
 	GetEconomicEventsResponse,
-	CreateEconomicEventResponse
+	CreateEconomicEventResponse,
+	UpdateEconomicEventResponse,
+	DeleteEconomicEventResponse
 } from '../graphql/types';
 import { GET_ECONOMIC_EVENTS } from '../graphql/queries';
 import { CREATE_ECONOMIC_EVENT } from '../graphql/mutations';
@@ -13,21 +22,25 @@ export interface EconomicEventsStore {
 	readonly loading: boolean;
 	readonly error: string | null;
 	fetchAllEvents(): Promise<void>;
-	createEvent(event: Partial<EconomicEvent>): Promise<EconomicEvent>;
-	updateEvent(id: string, event: Partial<EconomicEvent>): Promise<EconomicEvent>;
+	createEvent(event: EconomicEventCreateParams): Promise<EconomicEvent>;
+	updateEvent(id: string, event: EconomicEventUpdateParams): Promise<EconomicEvent>;
 	deleteEvent(id: string): Promise<void>;
+	validateEventData(event: EconomicEventCreateParams): Promise<string[]>;
+	getEventsByResource(resourceId: string): EconomicEvent[];
+	getEventsByAgent(agentId: string): EconomicEvent[];
+	getEventsByAction(actionId: string): EconomicEvent[];
 }
 
 // Convert string queries to gql documents
 const GET_ALL_EVENTS = gql`
 	${GET_ECONOMIC_EVENTS}
 `;
+
 const CREATE_EVENT_MUTATION = gql`
 	${CREATE_ECONOMIC_EVENT}
 `;
 
-// Additional mutations that may not exist yet
-const UPDATE_EVENT = gql`
+const UPDATE_EVENT_MUTATION = gql`
 	mutation UpdateEconomicEvent($id: ID!, $event: EconomicEventUpdateParams!) {
 		updateEconomicEvent(id: $id, event: $event) {
 			economicEvent {
@@ -78,7 +91,7 @@ const UPDATE_EVENT = gql`
 	}
 `;
 
-const DELETE_EVENT = gql`
+const DELETE_EVENT_MUTATION = gql`
 	mutation DeleteEconomicEvent($id: ID!) {
 		deleteEconomicEvent(id: $id)
 	}
@@ -86,7 +99,7 @@ const DELETE_EVENT = gql`
 
 /**
  * Creates an economic events store that manages event-related state and operations.
- * Uses the hREA service to perform GraphQL operations with existing fragments.
+ * Uses the hREA service to perform GraphQL operations with proper foundation validation.
  *
  * @returns An object with event state and methods
  */
@@ -97,55 +110,145 @@ function createEconomicEventsStore(): EconomicEventsStore {
 	let error: string | null = $state(null);
 
 	/**
+	 * Utility function to handle loading state and errors
+	 */
+	async function withLoadingState<T>(
+		operation: () => Promise<T>,
+		setLoading: (value: boolean) => void,
+		setError: (value: string | null) => void
+	): Promise<T> {
+		if (loading) {
+			throw new Error('Another operation is in progress');
+		}
+
+		setLoading(true);
+		setError(null);
+
+		try {
+			return await operation();
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+			setError(`Operation failed: ${errorMessage}`);
+			console.error('Economic events store operation failed:', err);
+			throw err;
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	/**
+	 * Validates event data to ensure all required foundation components exist
+	 */
+	async function validateEventData(event: EconomicEventCreateParams): Promise<string[]> {
+		const errors: string[] = [];
+
+		// Check foundation requirements
+		if (!foundationService.isInitialized) {
+			try {
+				await foundationService.initialize();
+			} catch (err) {
+				errors.push('Foundation service initialization failed');
+				return errors;
+			}
+		}
+
+		const foundationStatus = await foundationService.checkFoundationRequirements();
+		if (!foundationStatus.allReady) {
+			errors.push('Foundation components not ready. Please initialize foundation components first.');
+			return errors;
+		}
+
+		// Validate Action exists
+		if (!actionsStore.getActionById(event.action)) {
+			errors.push(`Action "${event.action}" not found. Available actions: ${actionsStore.actions.map(a => a.id).join(', ')}`);
+		}
+
+		// Validate Provider Agent exists (if provided)
+		if (event.provider && !agentsStore.getAgentById(event.provider)) {
+			errors.push(`Provider agent "${event.provider}" not found`);
+		}
+
+		// Validate Receiver Agent exists (if provided)
+		if (event.receiver && !agentsStore.getAgentById(event.receiver)) {
+			errors.push(`Receiver agent "${event.receiver}" not found`);
+		}
+
+		// Validate Resource exists (if provided)
+		if (event.resourceInventoriedAs && !resourcesStore.getResourceById(event.resourceInventoriedAs)) {
+			errors.push(`Resource "${event.resourceInventoriedAs}" not found`);
+		}
+
+		// Validate ResourceSpecification exists (if provided)
+		if (event.resourceConformsTo && !resourcesStore.getResourceSpecificationById(event.resourceConformsTo)) {
+			errors.push(`Resource specification "${event.resourceConformsTo}" not found`);
+		}
+
+		// Validate Units in quantities (if provided)
+		if (event.resourceQuantity?.hasUnit && !unitsStore.getUnitById(event.resourceQuantity.hasUnit)) {
+			errors.push(`Unit "${event.resourceQuantity.hasUnit}" not found for resource quantity`);
+		}
+
+		if (event.effortQuantity?.hasUnit && !unitsStore.getUnitById(event.effortQuantity.hasUnit)) {
+			errors.push(`Unit "${event.effortQuantity.hasUnit}" not found for effort quantity`);
+		}
+
+		// Validate In Scope Of Agent exists (if provided)
+		if (event.inScopeOf && !agentsStore.getAgentById(event.inScopeOf)) {
+			errors.push(`Scope agent "${event.inScopeOf}" not found`);
+		}
+
+		return errors;
+	}
+
+	/**
 	 * Fetches all economic events from the hREA system.
 	 */
 	async function fetchAllEvents(): Promise<void> {
 		if (loading) return;
 
-		loading = true;
-		error = null;
+		return withLoadingState(
+			async () => {
+				if (!hreaService.isInitialized) {
+					await hreaService.initialize();
+				}
 
-		try {
-			// Ensure hREA service is initialized
-			if (!hreaService.isInitialized) {
-				await hreaService.initialize();
-			}
+				if (!hreaService.apolloClient) {
+					throw new Error('Apollo client is not available');
+				}
 
-			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
-			}
+				const result = await hreaService.apolloClient.query<GetEconomicEventsResponse>({
+					query: GET_ALL_EVENTS,
+					fetchPolicy: 'cache-first'
+				});
 
-			const result = await hreaService.apolloClient.query<GetEconomicEventsResponse>({
-				query: GET_ALL_EVENTS,
-				fetchPolicy: 'cache-first'
-			});
-
-			events = (result.data.economicEvents?.edges || []).map((edge) => edge.node);
-			console.log(`Fetched ${events.length} economic events`);
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to fetch economic events: ${errorMessage}`;
-			console.error(error, err);
-		} finally {
-			loading = false;
-		}
+				events = (result.data.economicEvents?.edges || []).map((edge) => edge.node);
+				console.log(`Fetched ${events.length} economic events`);
+			},
+			(value) => (loading = value),
+			(value) => (error = value)
+		);
 	}
 
 	/**
-	 * Creates a new economic event in the hREA system.
-	 * Falls back to mock creation for testing if GraphQL fails.
+	 * Creates a new economic event in the hREA system with proper validation.
 	 */
-	async function createEvent(eventData: Partial<EconomicEvent>): Promise<EconomicEvent> {
-		if (loading) {
-			throw new Error('Another operation is in progress');
-		}
+	async function createEvent(eventData: EconomicEventCreateParams): Promise<EconomicEvent> {
+		return withLoadingState(
+			async () => {
+				// Validate event data first
+				const validationErrors = await validateEventData(eventData);
+				if (validationErrors.length > 0) {
+					throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+				}
 
-		loading = true;
-		error = null;
+				if (!hreaService.isInitialized) {
+					await hreaService.initialize();
+				}
 
-		try {
-			// Try to create via GraphQL first
-			if (hreaService.isInitialized && hreaService.apolloClient) {
+				if (!hreaService.apolloClient) {
+					throw new Error('Apollo client is not available');
+				}
+
 				const result = await hreaService.apolloClient.mutate<CreateEconomicEventResponse>({
 					mutation: CREATE_EVENT_MUTATION,
 					variables: {
@@ -154,126 +257,179 @@ function createEconomicEventsStore(): EconomicEventsStore {
 				});
 
 				const newEvent = result.data?.createEconomicEvent.economicEvent;
-				if (newEvent) {
-					events = [...events, newEvent];
-					console.log('Created new economic event via GraphQL:', newEvent.id);
-					return newEvent;
+				if (!newEvent) {
+					throw new Error('Failed to create economic event - no data returned');
 				}
-			}
 
-			// Fallback: Create mock event for testing
-			const mockEvent: EconomicEvent = {
-				id: `mock-event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-				action: eventData.action || { id: 'work', label: 'Work', resourceEffect: 'no-change' },
-				provider: eventData.provider,
-				receiver: eventData.receiver,
-				resourceInventoriedAs: eventData.resourceInventoriedAs,
-				resourceQuantity: eventData.resourceQuantity,
-				effortQuantity: eventData.effortQuantity,
-				hasPointInTime: eventData.hasPointInTime || new Date().toISOString(),
-				hasBeginning: eventData.hasBeginning,
-				hasEnd: eventData.hasEnd,
-				note: eventData.note,
-				inScopeOf: eventData.inScopeOf
-			};
+				events = [...events, newEvent];
+				console.log('Created new economic event:', newEvent.id);
 
-			events = [...events, mockEvent];
-			console.log('Created mock economic event:', mockEvent.id);
-
-			return mockEvent;
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to create economic event: ${errorMessage}`;
-			console.error(error, err);
-			throw err;
-		} finally {
-			loading = false;
-		}
+				return newEvent;
+			},
+			(value) => (loading = value),
+			(value) => (error = value)
+		);
 	}
 
 	/**
 	 * Updates an existing economic event in the hREA system.
 	 */
-	async function updateEvent(
-		id: string,
-		eventData: Partial<EconomicEvent>
-	): Promise<EconomicEvent> {
-		if (loading) {
-			throw new Error('Another operation is in progress');
-		}
-
-		loading = true;
-		error = null;
-
-		try {
-			// Ensure hREA service is initialized
-			if (!hreaService.isInitialized) {
-				await hreaService.initialize();
-			}
-
-			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
-			}
-
-			const result = await hreaService.apolloClient.mutate({
-				mutation: UPDATE_EVENT,
-				variables: {
-					id,
-					event: eventData
+	async function updateEvent(id: string, eventData: EconomicEventUpdateParams): Promise<EconomicEvent> {
+		return withLoadingState(
+			async () => {
+				if (!hreaService.isInitialized) {
+					await hreaService.initialize();
 				}
-			});
 
-			const updatedEvent = result.data.updateEconomicEvent.economicEvent;
-			events = events.map((event) => (event.id === id ? updatedEvent : event));
-			console.log('Updated economic event:', id);
+				if (!hreaService.apolloClient) {
+					throw new Error('Apollo client is not available');
+				}
 
-			return updatedEvent;
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to update economic event: ${errorMessage}`;
-			console.error(error, err);
-			throw err;
-		} finally {
-			loading = false;
-		}
+				const result = await hreaService.apolloClient.mutate<UpdateEconomicEventResponse>({
+					mutation: UPDATE_EVENT_MUTATION,
+					variables: {
+						id,
+						event: eventData
+					}
+				});
+
+				const updatedEvent = result.data?.updateEconomicEvent.economicEvent;
+				if (!updatedEvent) {
+					throw new Error('Failed to update economic event - no data returned');
+				}
+
+				// Update in local store
+				const index = events.findIndex((e) => e.id === id);
+				if (index !== -1) {
+					events[index] = updatedEvent;
+				}
+
+				console.log('Updated economic event:', id);
+				return updatedEvent;
+			},
+			(value) => (loading = value),
+			(value) => (error = value)
+		);
 	}
 
 	/**
 	 * Deletes an economic event from the hREA system.
 	 */
 	async function deleteEvent(id: string): Promise<void> {
-		if (loading) {
-			throw new Error('Another operation is in progress');
-		}
+		return withLoadingState(
+			async () => {
+				if (!hreaService.isInitialized) {
+					await hreaService.initialize();
+				}
 
-		loading = true;
-		error = null;
+				if (!hreaService.apolloClient) {
+					throw new Error('Apollo client is not available');
+				}
 
-		try {
-			// Ensure hREA service is initialized
-			if (!hreaService.isInitialized) {
-				await hreaService.initialize();
+				await hreaService.apolloClient.mutate<DeleteEconomicEventResponse>({
+					mutation: DELETE_EVENT_MUTATION,
+					variables: { id }
+				});
+
+				// Remove from local store
+				events = events.filter((e) => e.id !== id);
+				console.log('Deleted economic event:', id);
+			},
+			(value) => (loading = value),
+			(value) => (error = value)
+		);
+	}
+
+	/**
+	 * Gets events related to a specific resource
+	 */
+	function getEventsByResource(resourceId: string): EconomicEvent[] {
+		return events.filter(event => event.resourceInventoriedAs?.id === resourceId);
+	}
+
+	/**
+	 * Gets economic events by agent ID (where agent is provider or receiver)
+	 */
+	function getEventsByAgent(agentId: string): EconomicEvent[] {
+		return events.filter(event =>
+			event.provider?.id === agentId ||
+			event.receiver?.id === agentId
+		);
+	}
+
+	/**
+	 * Gets economic events by agent ID with additional filtering
+	 */
+	function getEventsByAgentWithFilter(agentId: string, options: {
+		includeProvided?: boolean;
+		includeReceived?: boolean;
+		actionId?: string;
+		resourceId?: string;
+		fromDate?: string;
+		toDate?: string;
+	} = {}): EconomicEvent[] {
+		const { includeProvided = true, includeReceived = true, actionId, resourceId, fromDate, toDate } = options;
+
+		return events.filter(event => {
+			// Agent filter
+			const isProvider = includeProvided && event.provider?.id === agentId;
+			const isReceiver = includeReceived && event.receiver?.id === agentId;
+
+			if (!isProvider && !isReceiver) {
+				return false;
 			}
 
-			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
+			// Action filter
+			if (actionId && event.action?.id !== actionId) {
+				return false;
 			}
 
-			await hreaService.apolloClient.mutate({
-				mutation: DELETE_EVENT,
-				variables: { id }
-			});
+			// Resource filter
+			if (resourceId && event.resourceInventoriedAs?.id !== resourceId) {
+				return false;
+			}
 
-			events = events.filter((event) => event.id !== id);
-			console.log('Deleted economic event:', id);
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to delete economic event: ${errorMessage}`;
-			console.error(error, err);
-			throw err;
-		} finally {
-			loading = false;
-		}
+			// Date filters
+			const eventDate = event.hasPointInTime || event.hasBeginning;
+			if (fromDate && eventDate && eventDate < fromDate) {
+				return false;
+			}
+			if (toDate && eventDate && eventDate > toDate) {
+				return false;
+			}
+
+			return true;
+		});
+	}
+
+	/**
+	 * Gets economic event statistics for an agent
+	 */
+	function getEventStatsByAgent(agentId: string) {
+		const agentEvents = getEventsByAgent(agentId);
+
+		return {
+			total: agentEvents.length,
+			provided: agentEvents.filter(e => e.provider?.id === agentId).length,
+			received: agentEvents.filter(e => e.receiver?.id === agentId).length,
+			byAction: agentEvents.reduce((acc, event) => {
+				const actionId = event.action?.id || 'unknown';
+				acc[actionId] = (acc[actionId] || 0) + 1;
+				return acc;
+			}, {} as Record<string, number>),
+			byResource: agentEvents.reduce((acc, event) => {
+				const resourceId = event.resourceInventoriedAs?.id || 'unknown';
+				acc[resourceId] = (acc[resourceId] || 0) + 1;
+				return acc;
+			}, {} as Record<string, number>)
+		};
+	}
+
+	/**
+	 * Gets events with a specific action
+	 */
+	function getEventsByAction(actionId: string): EconomicEvent[] {
+		return events.filter(event => event.action.id === actionId);
 	}
 
 	return {
@@ -292,7 +448,13 @@ function createEconomicEventsStore(): EconomicEventsStore {
 		fetchAllEvents,
 		createEvent,
 		updateEvent,
-		deleteEvent
+		deleteEvent,
+		validateEventData,
+		getEventsByResource,
+		getEventsByAgent,
+		getEventsByAgentWithFilter,
+		getEventStatsByAgent,
+		getEventsByAction
 	};
 }
 

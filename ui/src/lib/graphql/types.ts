@@ -223,6 +223,9 @@ export interface EconomicEvent {
 	hasEnd?: string;
 	note?: string;
 	inScopeOf?: Agent;
+	// Process relationships
+	inputOf?: Process;
+	outputOf?: Process;
 }
 
 export interface Action {
@@ -328,4 +331,235 @@ export interface UpdateResourceSpecificationResponse {
 
 export interface DeleteResourceSpecificationResponse {
 	deleteResourceSpecification: boolean;
+}
+
+// Units Response Types
+export interface GetUnitsResponse {
+	units: Unit[];
+}
+
+export interface GetUnitResponse {
+	unit: Unit;
+}
+
+export interface CreateUnitResponse {
+	createUnit: {
+		unit: Unit;
+	};
+}
+
+export interface UpdateUnitResponse {
+	updateUnit: {
+		unit: Unit;
+	};
+}
+
+export interface DeleteUnitResponse {
+	deleteUnit: boolean;
+}
+
+// Units Input Types
+export interface UnitCreateParams {
+	id: string;
+	label: string;
+	symbol: string;
+}
+
+export interface UnitUpdateParams {
+	label?: string;
+	symbol?: string;
+}
+
+// Actions Response Types
+export interface CreateActionResponse {
+	createAction: {
+		action: Action;
+	};
+}
+
+export interface UpdateActionResponse {
+	updateAction: {
+		action: Action;
+	};
+}
+
+export interface DeleteActionResponse {
+	deleteAction: boolean;
+}
+
+// Actions Input Types
+export interface ActionCreateParams {
+	id: string;
+	label: string;
+	resourceEffect: string;
+}
+
+export interface ActionUpdateParams {
+	label?: string;
+	resourceEffect?: string;
+}
+
+// EconomicEvent Response Types
+export interface UpdateEconomicEventResponse {
+	updateEconomicEvent: {
+		economicEvent: EconomicEvent;
+	};
+}
+
+export interface DeleteEconomicEventResponse {
+	deleteEconomicEvent: boolean;
+}
+
+// EconomicEvent Input Types
+export interface EconomicEventCreateParams {
+	action: string; // Action ID
+	provider?: string; // Agent ID
+	receiver?: string; // Agent ID
+	resourceInventoriedAs?: string; // EconomicResource ID
+	resourceConformsTo?: string; // ResourceSpecification ID
+	resourceQuantity?: MeasureCreateParams;
+	effortQuantity?: MeasureCreateParams;
+	hasPointInTime?: string;
+	hasBeginning?: string;
+	hasEnd?: string;
+	note?: string;
+	inScopeOf?: string; // Agent ID
+	// Process relationships
+	inputOf?: string; // Process ID
+	outputOf?: string; // Process ID
+}
+
+export interface EconomicEventUpdateParams {
+	action?: string; // Action ID
+	provider?: string; // Agent ID
+	receiver?: string; // Agent ID
+	resourceInventoriedAs?: string; // EconomicResource ID
+	resourceConformsTo?: string; // ResourceSpecification ID
+	resourceQuantity?: MeasureCreateParams;
+	effortQuantity?: MeasureCreateParams;
+	hasPointInTime?: string;
+	hasBeginning?: string;
+	hasEnd?: string;
+	note?: string;
+	inScopeOf?: string; // Agent ID
+	// Process relationships
+	inputOf?: string; // Process ID
+	outputOf?: string; // Process ID
+}
+
+// Measure Input Types
+export interface MeasureCreateParams {
+	hasNumericalValue: number;
+	hasUnit: string; // Unit ID
+}
+
+// Process Types
+export interface Process {
+	id: string;
+	name: string;
+	note?: string;
+	basedOn?: ProcessSpecification;
+	inScopeOf?: Agent;
+	hasBeginning?: string;
+	hasEnd?: string;
+	isFinished?: boolean;
+	plannedWithin?: Plan;
+}
+
+export interface ProcessSpecification {
+	id: string;
+	name: string;
+	note?: string;
+	classifiedAs?: string[];
+}
+
+// Process Input Types
+export interface ProcessCreateParams {
+	name: string;
+	note?: string;
+	basedOn?: string; // ProcessSpecification ID
+	inScopeOf?: string; // Agent ID
+	hasBeginning?: string;
+	hasEnd?: string;
+	isFinished?: boolean;
+	plannedWithin?: string; // Plan ID
+}
+
+export interface ProcessUpdateParams {
+	name?: string;
+	note?: string;
+	basedOn?: string; // ProcessSpecification ID
+	inScopeOf?: string; // Agent ID
+	hasBeginning?: string;
+	hasEnd?: string;
+	isFinished?: boolean;
+	plannedWithin?: string; // Plan ID
+}
+
+export interface ProcessSpecificationCreateParams {
+	name: string;
+	note?: string;
+	classifiedAs?: string[];
+}
+
+export interface ProcessSpecificationUpdateParams {
+	name?: string;
+	note?: string;
+	classifiedAs?: string[];
+}
+
+// Process Response Types
+export interface GetProcessesResponse {
+	processes: {
+		edges: {
+			node: Process;
+		}[];
+	};
+}
+
+export interface GetProcessSpecificationsResponse {
+	processSpecifications: {
+		edges: {
+			node: ProcessSpecification;
+		}[];
+	};
+}
+
+export interface CreateProcessResponse {
+	createProcess: {
+		process: Process;
+	};
+}
+
+export interface UpdateProcessResponse {
+	updateProcess: {
+		process: Process;
+	};
+}
+
+export interface DeleteProcessResponse {
+	deleteProcess: boolean;
+}
+
+export interface CreateProcessSpecificationResponse {
+	createProcessSpecification: {
+		processSpecification: ProcessSpecification;
+	};
+}
+
+export interface UpdateProcessSpecificationResponse {
+	updateProcessSpecification: {
+		processSpecification: ProcessSpecification;
+	};
+}
+
+export interface DeleteProcessSpecificationResponse {
+	deleteProcessSpecification: boolean;
+}
+
+// Placeholder for Plan type (will be implemented later)
+export interface Plan {
+	id: string;
+	name: string;
+	note?: string;
 }

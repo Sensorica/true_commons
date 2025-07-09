@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { agentsStore } from '$lib/stores';
+	import agentsStore from '$lib/stores/agents.store.svelte';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
@@ -62,6 +62,15 @@
 							Resources
 						</a>
 						<a
+							href="/events"
+							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
+								{currentPath === '/events'
+								? 'border-blue-500 text-gray-900 dark:text-white'
+								: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white'}"
+						>
+							Events
+						</a>
+						<a
 							href="/agents"
 							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
 								{currentPath === '/agents'
@@ -69,6 +78,15 @@
 								: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white'}"
 						>
 							Agents
+						</a>
+						<a
+							href="/processes"
+							class="inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
+								{currentPath === '/processes'
+								? 'border-blue-500 text-gray-900 dark:text-white'
+								: 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white'}"
+						>
+							Processes
 						</a>
 					</div>
 				</div>
@@ -157,6 +175,15 @@
 					Resources
 				</a>
 				<a
+					href="/events"
+					class="block border-l-4 py-2 pr-4 pl-3 text-sm font-medium
+						{currentPath === '/events'
+						? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+						: 'border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
+				>
+					Events
+				</a>
+				<a
 					href="/agents"
 					class="block border-l-4 py-2 pr-4 pl-3 text-sm font-medium
 						{currentPath === '/agents'
@@ -164,6 +191,15 @@
 						: 'border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
 				>
 					Agents
+				</a>
+				<a
+					href="/processes"
+					class="block border-l-4 py-2 pr-4 pl-3 text-sm font-medium
+						{currentPath === '/processes'
+						? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+						: 'border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
+				>
+					Processes
 				</a>
 			</div>
 		</div>

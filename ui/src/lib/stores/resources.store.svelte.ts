@@ -50,6 +50,8 @@ export interface ResourcesStore {
 	): Promise<EconomicResource>;
 	searchResourcesByTag(tag: string): EconomicResource[];
 	getResourcesByType(type: string): EconomicResource[];
+	getResourceById(id: string): EconomicResource | null;
+	getResourceSpecificationById(id: string): ResourceSpecification | null;
 
 	// Testing helpers
 	addMockResource(resource: EconomicResource): void;
@@ -459,23 +461,43 @@ function createResourcesStore(): ResourcesStore {
 
 		return withLoadingState(
 			async () => {
-				if (!hreaService.isInitialized) {
-					await hreaService.initialize();
+				try {
+					if (!hreaService.isInitialized) {
+						await hreaService.initialize();
+					}
+
+					if (!hreaService.apolloClient) {
+						throw new Error('Apollo client is not available');
+					}
+
+					const result = await hreaService.apolloClient.query<GetResourceSpecificationsResponse>({
+						query: GET_ALL_RESOURCE_SPECIFICATIONS,
+						fetchPolicy: 'cache-first'
+					});
+
+					// Defensive handling of GraphQL query result
+					if (result.data && result.data.resourceSpecifications) {
+						if (result.data.resourceSpecifications.edges) {
+							resourceSpecifications = result.data.resourceSpecifications.edges.map(edge => edge.node);
+						} else if (Array.isArray(result.data.resourceSpecifications)) {
+							resourceSpecifications = result.data.resourceSpecifications;
+						} else {
+							resourceSpecifications = [];
+						}
+					} else {
+						// If no resource specifications found, initialize as empty array
+						resourceSpecifications = [];
+						console.warn('No resource specifications found in GraphQL response, initializing empty array');
+					}
+
+					console.log(`Fetched ${resourceSpecifications.length} resource specifications`);
+				} catch (err) {
+					console.error('Failed to fetch resource specifications from GraphQL:', err);
+					// On GraphQL failure, initialize empty array to prevent .map() errors
+					resourceSpecifications = [];
+					// Re-throw to trigger error handling
+					throw err;
 				}
-
-				if (!hreaService.apolloClient) {
-					throw new Error('Apollo client is not available');
-				}
-
-				const result = await hreaService.apolloClient.query<GetResourceSpecificationsResponse>({
-					query: GET_ALL_RESOURCE_SPECIFICATIONS,
-					fetchPolicy: 'cache-first'
-				});
-
-				resourceSpecifications = (result.data.resourceSpecifications?.edges || []).map(
-					(edge) => edge.node
-				);
-				console.log(`Fetched ${resourceSpecifications.length} resource specifications`);
 			},
 			setLoading,
 			setError
@@ -616,12 +638,76 @@ function createResourcesStore(): ResourcesStore {
 		return resources.filter((resource) => resource.conformsTo?.name === type);
 	}
 
+	function getResourceById(id: string): EconomicResource | null {
+		return resources.find(resource => resource.id === id) || null;
+	}
+
+	function getResourceSpecificationById(id: string): ResourceSpecification | null {
+		return resourceSpecifications.find(spec => spec.id === id) || null;
+	}
+
 	function addMockResource(resource: EconomicResource): void {
 		resources = [...resources, resource];
 	}
 
 	function clearMockResources(): void {
 		resources = [];
+	}
+
+	/**
+	 * Gets resources by agent ID (resources where the agent is the provider/owner)
+	 */
+	function getResourcesByAgent(agentId: string): EconomicResource[] {
+		return resources.filter(resource =>
+			resource.providedBy?.id === agentId ||
+			resource.custodian?.id === agentId
+		);
+	}
+
+	/**
+	 * Gets resources by agent ID with additional filtering
+	 */
+	function getResourcesByAgentWithFilter(agentId: string, options: {
+		includeProvided?: boolean;
+		includeCustodian?: boolean;
+		resourceSpecificationId?: string;
+	} = {}): EconomicResource[] {
+		const { includeProvided = true, includeCustodian = true, resourceSpecificationId } = options;
+
+		return resources.filter(resource => {
+			// Agent filter
+			const isProvider = includeProvided && resource.providedBy?.id === agentId;
+			const isCustodian = includeCustodian && resource.custodian?.id === agentId;
+
+			if (!isProvider && !isCustodian) {
+				return false;
+			}
+
+			// Resource specification filter
+			if (resourceSpecificationId && resource.conformsTo?.id !== resourceSpecificationId) {
+				return false;
+			}
+
+			return true;
+		});
+	}
+
+	/**
+	 * Gets resource statistics for an agent
+	 */
+	function getResourceStatsByAgent(agentId: string) {
+		const agentResources = getResourcesByAgent(agentId);
+
+		return {
+			total: agentResources.length,
+			provided: agentResources.filter(r => r.providedBy?.id === agentId).length,
+			custodian: agentResources.filter(r => r.custodian?.id === agentId).length,
+			bySpecification: agentResources.reduce((acc, resource) => {
+				const specId = resource.conformsTo?.id || 'unknown';
+				acc[specId] = (acc[specId] || 0) + 1;
+				return acc;
+			}, {} as Record<string, number>)
+		};
 	}
 
 	// ========================================================================
@@ -658,8 +744,13 @@ function createResourcesStore(): ResourcesStore {
 		createResourceFromSpec,
 		searchResourcesByTag,
 		getResourcesByType,
+		getResourceById,
+		getResourceSpecificationById,
 		addMockResource,
-		clearMockResources
+		clearMockResources,
+		getResourcesByAgent,
+		getResourcesByAgentWithFilter,
+		getResourceStatsByAgent
 	};
 }
 

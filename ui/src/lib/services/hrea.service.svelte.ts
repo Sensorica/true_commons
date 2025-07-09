@@ -35,20 +35,33 @@ function createHREAService(): HREAService {
 		initializationError = null;
 
 		try {
+			console.log('🔗 Initializing hREA service...');
+
 			// Ensure Holochain client is connected
+			console.log('🔌 Checking Holochain client connection...');
+			console.log('Holochain client connected:', holochainClientService.isConnected);
+			console.log('Holochain client connecting:', holochainClientService.isConnecting);
+			console.log('Holochain client instance:', !!holochainClientService.client);
+
 			if (!holochainClientService.isConnected) {
+				console.log('🔌 Connecting to Holochain client...');
 				await holochainClientService.connectClient();
 			}
 
 			if (!holochainClientService.client) {
+				console.error('❌ Holochain client is still not available after connection attempt');
 				throw new Error('Holochain client is not available');
 			}
+
+			console.log('✅ Holochain client is available, creating GraphQL schema...');
 
 			// Create the hREA GraphQL schema using the Holochain connection
 			const schema = createHolochainSchema({
 				appWebSocket: holochainClientService.client,
 				roleName: 'hrea'
 			});
+
+			console.log('✅ GraphQL schema created, setting up Apollo Client...');
 
 			// Create Apollo Client with the Holochain schema
 			apolloClient = new ApolloClient({
@@ -72,6 +85,12 @@ function createHREAService(): HREAService {
 						},
 						Proposal: {
 							keyFields: ['id']
+						},
+						Unit: {
+							keyFields: ['id']
+						},
+						Action: {
+							keyFields: ['id']
 						}
 					}
 				}),
@@ -87,11 +106,11 @@ function createHREAService(): HREAService {
 			});
 
 			isInitialized = true;
-			console.log('hREA service initialized successfully with GraphQL schema');
+			console.log('✅ hREA service initialized successfully with GraphQL schema');
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
 			initializationError = `Failed to initialize hREA service: ${errorMessage}`;
-			console.error(initializationError, error);
+			console.error('❌ hREA service initialization failed:', initializationError, error);
 			apolloClient = null;
 			isInitialized = false;
 			throw error;

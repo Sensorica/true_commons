@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { agentsStore, economicEventsStore } from '$lib/stores';
+	import agentsStore from '$lib/stores/agents.store.svelte';
+	import economicEventsStore from '$lib/stores/economic-events.store.svelte';
 	import type { Agent } from '$lib/graphql/types';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import AgentProfileForm from '$lib/components/AgentProfileForm.svelte';
 	import AgentProfileDisplay from '$lib/components/AgentProfileDisplay.svelte';
 
@@ -459,13 +461,19 @@
 								>
 									Edit Profile
 								</button>
+								<button
+									onclick={() => goto(`/agents/${agent.id}`)}
+									class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+								>
+									View Profile
+								</button>
 								{#if agentsStore.myAgent?.id !== agent.id}
 									<button
 										onclick={() => {
 											selectedAgentForMyAgent = agent.id;
 											setMyAgent();
 										}}
-										class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+										class="text-sm text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
 									>
 										Set as My Agent
 									</button>

@@ -19,6 +19,7 @@ export interface AgentsStore {
 	createAgent(agent: AgentCreateParams): Promise<Agent>;
 	updateAgent(id: string, agent: Partial<Agent>): Promise<Agent>;
 	deleteAgent(id: string): Promise<void>;
+	getAgentById(id: string): Agent | null;
 	// Testing helpers
 	setMyAgentFromLocalStorage(agentId: string): void;
 	clearMyAgentFromLocalStorage(): void;
@@ -371,6 +372,13 @@ function createAgentsStore(): AgentsStore {
 	}
 
 	/**
+	 * Gets an agent by ID
+	 */
+	function getAgentById(id: string): Agent | null {
+		return agents.find(agent => agent.id === id) || null;
+	}
+
+	/**
 	 * Sets myAgent from localStorage by agent ID (for testing)
 	 */
 	function setMyAgentFromLocalStorage(agentId: string): void {
@@ -423,6 +431,7 @@ function createAgentsStore(): AgentsStore {
 		createAgent,
 		updateAgent,
 		deleteAgent,
+		getAgentById,
 
 		// Testing helpers
 		setMyAgentFromLocalStorage,

@@ -1,10 +1,12 @@
 <script lang="ts">
-	import ResourcesCanvas from '$lib/components/ResourcesCanvas.svelte';
-	import { agentsStore, resourcesStore, economicEventsStore } from '$lib/stores';
+	import agentsStore from '$lib/stores/agents.store.svelte';
+	import resourcesStore from '$lib/stores/resources.store.svelte';
+	import economicEventsStore from '$lib/stores/economic-events.store.svelte';
+	import type { Agent, EconomicResource, ResourceSpecification } from '$lib/graphql/types';
 	import { onMount } from 'svelte';
+	import ResourcesCanvas from '$lib/components/ResourcesCanvas.svelte';
 	import ResourceCreateForm from '$lib/components/ResourceCreateForm.svelte';
 	import ResourceDetail from '$lib/components/ResourceDetail.svelte';
-	import type { EconomicResource } from '$lib/graphql/types';
 
 	// State
 	let resourceSearch = $state('');

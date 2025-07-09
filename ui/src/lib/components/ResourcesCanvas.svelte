@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { resourcesStore, agentsStore } from '$lib/stores';
+	import resourcesStore from '$lib/stores/resources.store.svelte';
+	import agentsStore from '$lib/stores/agents.store.svelte';
 	import ResourceCard from './ResourceCard.svelte';
 	import ResourceDetail from './ResourceDetail.svelte';
 	import ResourceCreateForm from './ResourceCreateForm.svelte';
-	import type { EconomicResource } from '$lib/graphql/types';
+	import type { Agent, EconomicResource, ResourceSpecification } from '$lib/graphql/types';
 	import { createEventDispatcher } from 'svelte';
 
 	const dispatch = createEventDispatcher();

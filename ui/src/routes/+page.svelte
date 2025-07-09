@@ -1,6 +1,18 @@
 <script lang="ts">
-	import { agentsStore, resourcesStore, economicEventsStore } from '$lib/stores';
+	import foundationService from '$lib/services/foundation.service.svelte';
+	import unitsStore from '$lib/stores/units.store.svelte';
+	import actionsStore from '$lib/stores/actions.store.svelte';
+	import agentsStore from '$lib/stores/agents.store.svelte';
+	import resourcesStore from '$lib/stores/resources.store.svelte';
+	import economicEventsStore from '$lib/stores/economic-events.store.svelte';
+	import processesStore from '$lib/stores/processes.store.svelte';
+	import processSpecificationsStore from '$lib/stores/process-specifications.store.svelte';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+
+	// State for foundation status
+	let foundationStatus = $state<any>(null);
+	let initializingFoundation = $state(false);
 
 	// Quick stats for dashboard
 	let stats = $derived({
@@ -22,6 +34,12 @@
 		activity: {
 			events: economicEventsStore.events.length,
 			recentEvents: economicEventsStore.events.slice(0, 5)
+		},
+		foundation: {
+			isReady: foundationStatus?.allReady || false,
+			unitsReady: foundationStatus?.unitsReady || false,
+			actionsReady: foundationStatus?.actionsReady || false,
+			resourceSpecsReady: foundationStatus?.resourceSpecificationsReady || false
 		}
 	});
 
@@ -34,16 +52,133 @@
 	];
 
 	// Quick actions
-	function goToResources() {
-		window.location.href = '/resources';
+	function goToAgents() {
+		goto('/agents');
 	}
 
-	function goToAgents() {
-		window.location.href = '/agents';
+	function goToMyProfile() {
+		if (agentsStore.myAgent) {
+			goto(`/agents/${agentsStore.myAgent.id}`);
+		}
+	}
+
+	function goToResources() {
+		goto('/resources');
+	}
+
+	function goToProcesses() {
+		goto('/processes');
+	}
+
+	function goToEvents() {
+		goto('/events');
+	}
+
+	async function initializeFoundationComponents() {
+		if (initializingFoundation) return;
+
+		initializingFoundation = true;
+		console.log('🔄 Starting foundation initialization...');
+
+		try {
+			// Step 1: Check Holochain connection
+			console.log('🔌 Checking Holochain client connection...');
+			try {
+				const holochainClientService = await import('$lib/services/holochain_client_service.svelte');
+				console.log('Holochain client status:', {
+					isConnected: holochainClientService.default.isConnected,
+					isConnecting: holochainClientService.default.isConnecting,
+					connectionError: holochainClientService.default.connectionError
+				});
+			} catch (err) {
+				console.warn('Could not check Holochain client:', err);
+			}
+
+			// Step 2: Check hREA service
+			console.log('🔗 Checking hREA service...');
+			try {
+				const hreaService = await import('$lib/services/hrea.service.svelte');
+				console.log('hREA service status:', {
+					isInitialized: hreaService.default.isInitialized,
+					initializationError: hreaService.default.initializationError
+				});
+			} catch (err) {
+				console.warn('Could not check hREA service:', err);
+			}
+
+			// Step 3: Initialize foundation service with detailed logging
+			console.log('⚙️ Initializing foundation service...');
+			await foundationService.initialize();
+			console.log('✅ Foundation service initialized successfully');
+			
+			// Step 4: Check status after initialization
+			console.log('🔍 Checking foundation status...');
+			foundationStatus = await foundationService.checkFoundationRequirements();
+			console.log('Foundation status after initialization:', foundationStatus);
+			
+			// Step 5: Reload all stores to get the newly created foundation data
+			console.log('🔄 Reloading stores...');
+			const storeReloads = [
+				{ name: 'units', fn: () => unitsStore.fetchAllUnits() },
+				{ name: 'actions', fn: () => actionsStore.fetchAllActions() },
+				{ name: 'resourceSpecifications', fn: () => resourcesStore.fetchAllResourceSpecifications() },
+				{ name: 'agents', fn: () => agentsStore.fetchAllAgents() },
+				{ name: 'resources', fn: () => resourcesStore.fetchAllResources() },
+				{ name: 'events', fn: () => economicEventsStore.fetchAllEvents() },
+				{ name: 'processes', fn: () => processesStore.fetchAllProcesses() },
+				{ name: 'processSpecifications', fn: () => processSpecificationsStore.fetchAllProcessSpecifications() }
+			];
+
+			for (const store of storeReloads) {
+				try {
+					console.log(`🔄 Reloading ${store.name}...`);
+					await store.fn();
+					console.log(`✅ ${store.name} reloaded successfully`);
+				} catch (err) {
+					console.warn(`⚠️ Failed to reload ${store.name}:`, err);
+				}
+			}
+			
+			// Step 6: Final status check
+			console.log('🔍 Final foundation status check...');
+			foundationStatus = await foundationService.checkFoundationRequirements();
+			console.log('✅ Foundation components initialized successfully');
+			console.log('Final foundation status:', foundationStatus);
+			
+			// Log detailed counts
+			console.log('📊 Store counts after initialization:', {
+				units: unitsStore.units.length,
+				actions: actionsStore.actions.length,
+				resourceSpecifications: resourcesStore.resourceSpecifications.length,
+				agents: agentsStore.agents.length,
+				resources: resourcesStore.resources.length,
+				events: economicEventsStore.events.length,
+				processes: processesStore.processes.length,
+				processSpecifications: processSpecificationsStore.processSpecifications.length
+			});
+		} catch (err) {
+			console.error('❌ Foundation initialization failed:', err);
+			
+			// Show more detailed error to user
+			const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+			const errorDetails = foundationService.initializationError || 'No additional details available';
+			
+			alert(`Foundation initialization failed!\n\nError: ${errorMessage}\n\nDetails: ${errorDetails}\n\nPlease check the browser console for more information.`);
+		} finally {
+			initializingFoundation = false;
+		}
 	}
 
 	// Load data on mount
-	onMount(() => {
+	onMount(async () => {
+		// First check foundation status
+		try {
+			foundationStatus = await foundationService.checkFoundationRequirements();
+			console.log('Foundation status checked:', foundationStatus);
+		} catch (err) {
+			console.error('Failed to check foundation status:', err);
+		}
+
 		// Load initial data
 		agentsStore.fetchAllAgents();
 		resourcesStore.fetchAllResources();
@@ -129,12 +264,22 @@
 						{stats.agents.authenticated ? 'Authenticated' : 'Not authenticated'}
 					</span>
 				</div>
-				<button
-					onclick={goToAgents}
-					class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-				>
-					Manage agents →
-				</button>
+				<div class="mt-3 flex flex-col space-y-2">
+					<button
+						onclick={goToAgents}
+						class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+					>
+						Manage agents →
+					</button>
+					{#if agentsStore.myAgent}
+						<button
+							onclick={goToMyProfile}
+							class="text-sm text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+						>
+							View my profile →
+						</button>
+					{/if}
+				</div>
 			</div>
 		</div>
 
@@ -163,21 +308,21 @@
 				</div>
 			</div>
 			<div class="mt-4">
-				<div class="text-sm text-gray-600 dark:text-gray-400">
-					{#each stats.byType.filter((t) => t.count > 0) as type}
-						<span class="mr-3">{type.type}: {type.count}</span>
-					{/each}
+				<div class="flex items-center text-sm">
+					<span class="text-gray-600 dark:text-gray-400">
+						{stats.resources.recent.length} recent resources
+					</span>
 				</div>
 				<button
 					onclick={goToResources}
 					class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
 				>
-					Browse resources →
+					View all resources →
 				</button>
 			</div>
 		</div>
 
-		<!-- Activity Overview -->
+		<!-- Economic Events Overview -->
 		<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
 			<div class="flex items-center">
 				<div class="flex-shrink-0">
@@ -207,12 +352,285 @@
 				</div>
 			</div>
 			<div class="mt-4">
-				<div class="text-sm text-gray-600 dark:text-gray-400">
-					Track all value flows and contributions
+				<div class="flex items-center text-sm">
+					<span class="text-gray-600 dark:text-gray-400">
+						{stats.activity.recentEvents.length} recent events
+					</span>
 				</div>
+				<button
+					onclick={goToEvents}
+					class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+				>
+					View all events →
+				</button>
 			</div>
 		</div>
 	</div>
+
+	<!-- Foundation Status Section -->
+	<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+		<div class="flex items-center justify-between">
+			<div>
+				<h2 class="text-lg font-medium text-gray-900 dark:text-white">Foundation Status</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					Core ValueFlows components required for economic activity
+				</p>
+			</div>
+			<div class="flex items-center">
+				{#if stats.foundation.isReady}
+					<span
+						class="inline-flex items-center rounded-full bg-green-100 px-3 py-0.5 text-sm font-medium text-green-800 dark:bg-green-900 dark:text-green-300"
+					>
+						<svg class="mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
+							<circle cx="4" cy="4" r="3" />
+						</svg>
+						Ready
+					</span>
+				{:else}
+					<span
+						class="inline-flex items-center rounded-full bg-yellow-100 px-3 py-0.5 text-sm font-medium text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+					>
+						<svg class="mr-1.5 h-2 w-2 text-yellow-400" fill="currentColor" viewBox="0 0 8 8">
+							<circle cx="4" cy="4" r="3" />
+						</svg>
+						Not Ready
+					</span>
+				{/if}
+			</div>
+		</div>
+
+		<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<!-- Units Status -->
+			<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
+				<div class="flex items-center">
+					<div class="flex-shrink-0">
+						<svg
+							class="h-5 w-5 text-gray-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+							></path>
+						</svg>
+					</div>
+					<div class="ml-3">
+						<p class="text-sm font-medium text-gray-900 dark:text-white">Units</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{unitsStore.units.length} available
+						</p>
+					</div>
+				</div>
+				<div class="flex-shrink-0">
+					{#if stats.foundation.unitsReady}
+						<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+					{:else}
+						<svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Actions Status -->
+			<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
+				<div class="flex items-center">
+					<div class="flex-shrink-0">
+						<svg
+							class="h-5 w-5 text-gray-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M13 10V3L4 14h7v7l9-11h-7z"
+							></path>
+						</svg>
+					</div>
+					<div class="ml-3">
+						<p class="text-sm font-medium text-gray-900 dark:text-white">Actions</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{actionsStore.actions.length} available
+						</p>
+					</div>
+				</div>
+				<div class="flex-shrink-0">
+					{#if stats.foundation.actionsReady}
+						<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+					{:else}
+						<svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Resource Specifications Status -->
+			<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
+				<div class="flex items-center">
+					<div class="flex-shrink-0">
+						<svg
+							class="h-5 w-5 text-gray-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+							></path>
+						</svg>
+					</div>
+					<div class="ml-3">
+						<p class="text-sm font-medium text-gray-900 dark:text-white">Resource Specs</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{resourcesStore.resourceSpecifications.length} available
+						</p>
+					</div>
+				</div>
+				<div class="flex-shrink-0">
+					{#if stats.foundation.resourceSpecsReady}
+						<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+					{:else}
+						<svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								fill-rule="evenodd"
+								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+								clip-rule="evenodd"
+							></path>
+						</svg>
+					{/if}
+				</div>
+			</div>
+		</div>
+
+		{#if !stats.foundation.isReady}
+			<div class="mt-4 text-center">
+				<button
+					onclick={initializeFoundationComponents}
+					disabled={initializingFoundation}
+					class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+				>
+					{#if initializingFoundation}
+						<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+						Initializing...
+					{:else}
+						Initialize Foundation Components
+					{/if}
+				</button>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Recent Activity -->
+	{#if stats.activity.recentEvents.length > 0}
+		<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+			<h2 class="text-lg font-medium text-gray-900 dark:text-white">Recent Economic Events</h2>
+			<div class="mt-4 space-y-3">
+				{#each stats.activity.recentEvents as event}
+					<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
+						<div class="flex items-center">
+							<div class="flex-shrink-0">
+								<svg
+									class="h-5 w-5 text-purple-500"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M13 10V3L4 14h7v7l9-11h-7z"
+									></path>
+								</svg>
+							</div>
+							<div class="ml-3">
+								<p class="text-sm font-medium text-gray-900 dark:text-white">
+									{event.action.label}
+									{#if event.resourceInventoriedAs}
+										- {event.resourceInventoriedAs.name}
+									{/if}
+								</p>
+								<p class="text-sm text-gray-500 dark:text-gray-400">
+									{#if event.provider}
+										by {event.provider.name}
+									{/if}
+									{#if event.hasPointInTime}
+										• {new Date(event.hasPointInTime).toLocaleDateString()}
+									{/if}
+								</p>
+							</div>
+						</div>
+						<div class="flex-shrink-0">
+							<span
+								class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+							>
+								{event.action.resourceEffect}
+							</span>
+						</div>
+					</div>
+				{/each}
+			</div>
+			<div class="mt-4 text-center">
+				<button
+					onclick={goToEvents}
+					class="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+				>
+					View all events →
+				</button>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Recent Resources -->
 	{#if stats.resources.recent.length > 0}
