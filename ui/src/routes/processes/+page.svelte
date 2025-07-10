@@ -160,7 +160,7 @@
 			<p>Processes require foundation components to be initialized first.</p>
 			<button
 				type="button"
-				class="btn btn-primary"
+				class="cursor-pointer rounded-lg bg-blue-400 p-4 text-black hover:underline"
 				onclick={initializeFoundation}
 				disabled={isInitializing}
 			>
@@ -305,7 +305,7 @@
 					{/if}
 				</div>
 			{:else if activeTab === 'create-process'}
-				<ProcessCreateForm {onProcessCreated} />
+				<ProcessCreateForm onProcessCreated={handleProcessCreated} />
 			{:else if activeTab === 'create-spec'}
 				<ProcessSpecificationCreateForm onProcessSpecCreated={handleProcessSpecCreated} />
 			{/if}

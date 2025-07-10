@@ -52,6 +52,12 @@ export interface ResourcesStore {
 	getResourcesByType(type: string): EconomicResource[];
 	getResourceById(id: string): EconomicResource | null;
 	getResourceSpecificationById(id: string): ResourceSpecification | null;
+	getResourcesByAgent(agentId: string): EconomicResource[];
+	getResourceStatsByAgent(agentId: string): {
+		total: number;
+		provided: number;
+		custodian: number;
+	};
 
 	// Testing helpers
 	addMockResource(resource: EconomicResource): void;
@@ -478,7 +484,9 @@ function createResourcesStore(): ResourcesStore {
 					// Defensive handling of GraphQL query result
 					if (result.data && result.data.resourceSpecifications) {
 						if (result.data.resourceSpecifications.edges) {
-							resourceSpecifications = result.data.resourceSpecifications.edges.map(edge => edge.node);
+							resourceSpecifications = result.data.resourceSpecifications.edges.map(
+								(edge) => edge.node
+							);
 						} else if (Array.isArray(result.data.resourceSpecifications)) {
 							resourceSpecifications = result.data.resourceSpecifications;
 						} else {
@@ -487,7 +495,9 @@ function createResourcesStore(): ResourcesStore {
 					} else {
 						// If no resource specifications found, initialize as empty array
 						resourceSpecifications = [];
-						console.warn('No resource specifications found in GraphQL response, initializing empty array');
+						console.warn(
+							'No resource specifications found in GraphQL response, initializing empty array'
+						);
 					}
 
 					console.log(`Fetched ${resourceSpecifications.length} resource specifications`);
@@ -639,75 +649,50 @@ function createResourcesStore(): ResourcesStore {
 	}
 
 	function getResourceById(id: string): EconomicResource | null {
-		return resources.find(resource => resource.id === id) || null;
+		return resources.find((resource) => resource.id === id) || null;
 	}
 
 	function getResourceSpecificationById(id: string): ResourceSpecification | null {
-		return resourceSpecifications.find(spec => spec.id === id) || null;
+		return resourceSpecifications.find((spec) => spec.id === id) || null;
 	}
 
+	/**
+	 * Filters resources that are associated with a specific agent.
+	 */
+	function getResourcesByAgent(agentId: string): EconomicResource[] {
+		return resources.filter(
+			(resource) => resource.providedBy?.id === agentId || resource.custodian?.id === agentId
+		);
+	}
+
+	/**
+	 * Calculates statistics for an agent's resources.
+	 */
+	function getResourceStatsByAgent(agentId: string) {
+		const agentResources = getResourcesByAgent(agentId);
+		const provided = agentResources.filter((r) => r.providedBy?.id === agentId).length;
+		const custodian = agentResources.filter((r) => r.custodian?.id === agentId).length;
+
+		return {
+			total: agentResources.length,
+			provided,
+			custodian
+		};
+	}
+
+	// ========================================================================
+	// MOCKING METHODS (for testing)
+	// ========================================================================
+
+	/**
+	 * Adds a mock resource to the store for testing purposes.
+	 */
 	function addMockResource(resource: EconomicResource): void {
 		resources = [...resources, resource];
 	}
 
 	function clearMockResources(): void {
 		resources = [];
-	}
-
-	/**
-	 * Gets resources by agent ID (resources where the agent is the provider/owner)
-	 */
-	function getResourcesByAgent(agentId: string): EconomicResource[] {
-		return resources.filter(resource =>
-			resource.providedBy?.id === agentId ||
-			resource.custodian?.id === agentId
-		);
-	}
-
-	/**
-	 * Gets resources by agent ID with additional filtering
-	 */
-	function getResourcesByAgentWithFilter(agentId: string, options: {
-		includeProvided?: boolean;
-		includeCustodian?: boolean;
-		resourceSpecificationId?: string;
-	} = {}): EconomicResource[] {
-		const { includeProvided = true, includeCustodian = true, resourceSpecificationId } = options;
-
-		return resources.filter(resource => {
-			// Agent filter
-			const isProvider = includeProvided && resource.providedBy?.id === agentId;
-			const isCustodian = includeCustodian && resource.custodian?.id === agentId;
-
-			if (!isProvider && !isCustodian) {
-				return false;
-			}
-
-			// Resource specification filter
-			if (resourceSpecificationId && resource.conformsTo?.id !== resourceSpecificationId) {
-				return false;
-			}
-
-			return true;
-		});
-	}
-
-	/**
-	 * Gets resource statistics for an agent
-	 */
-	function getResourceStatsByAgent(agentId: string) {
-		const agentResources = getResourcesByAgent(agentId);
-
-		return {
-			total: agentResources.length,
-			provided: agentResources.filter(r => r.providedBy?.id === agentId).length,
-			custodian: agentResources.filter(r => r.custodian?.id === agentId).length,
-			bySpecification: agentResources.reduce((acc, resource) => {
-				const specId = resource.conformsTo?.id || 'unknown';
-				acc[specId] = (acc[specId] || 0) + 1;
-				return acc;
-			}, {} as Record<string, number>)
-		};
 	}
 
 	// ========================================================================
@@ -749,7 +734,6 @@ function createResourcesStore(): ResourcesStore {
 		addMockResource,
 		clearMockResources,
 		getResourcesByAgent,
-		getResourcesByAgentWithFilter,
 		getResourceStatsByAgent
 	};
 }

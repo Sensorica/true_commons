@@ -1,24 +1,23 @@
 import { gql } from '@apollo/client/core';
+import { UNIT_FIELDS } from '../fragments';
 
 export const CREATE_UNIT_MUTATION = gql`
-	mutation CreateUnit($unit: UnitCreateParams!) {
-		createUnit(unit: $unit) {
+	${UNIT_FIELDS}
+	mutation CreateUnit($omUnitIdentifier: String!, $label: String!, $symbol: String!) {
+		createUnit(omUnitIdentifier: $omUnitIdentifier, label: $label, symbol: $symbol) {
 			unit {
-				id
-				label
-				symbol
+				...UnitFields
 			}
 		}
 	}
 `;
 
 export const UPDATE_UNIT_MUTATION = gql`
-	mutation UpdateUnit($id: ID!, $unit: UnitUpdateParams!) {
-		updateUnit(id: $id, unit: $unit) {
+	${UNIT_FIELDS}
+	mutation UpdateUnit($id: ID!, $omUnitIdentifier: String!, $label: String!, $symbol: String!) {
+		updateUnit(id: $id, omUnitIdentifier: $omUnitIdentifier, label: $label, symbol: $symbol) {
 			unit {
-				id
-				label
-				symbol
+				...UnitFields
 			}
 		}
 	}
@@ -26,6 +25,8 @@ export const UPDATE_UNIT_MUTATION = gql`
 
 export const DELETE_UNIT_MUTATION = gql`
 	mutation DeleteUnit($id: ID!) {
-		deleteUnit(id: $id)
+		deleteUnit(id: $id) {
+			id
+		}
 	}
-`; 
+`;

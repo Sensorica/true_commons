@@ -55,12 +55,12 @@
 	}
 
 	function getActionLabel(actionId: string): string {
-		const action = actionsStore.actions.find(a => a.id === actionId);
+		const action = actionsStore.actions.find((a) => a.id === actionId);
 		return action ? action.label : actionId;
 	}
 
 	function getUnitLabel(unitId: string): string {
-		const unit = unitsStore.units.find(u => u.id === unitId);
+		const unit = unitsStore.units.find((u) => u.id === unitId);
 		return unit ? `${unit.label} (${unit.symbol})` : unitId;
 	}
 </script>
@@ -69,20 +69,21 @@
 	<div class="page-header">
 		<h1>Economic Events</h1>
 		<p class="description">
-			Economic events represent actual occurrences of economic activity such as production, consumption, exchange, and transfers.
+			Economic events represent actual occurrences of economic activity such as production,
+			consumption, exchange, and transfers.
 		</p>
-		
+
 		<div class="header-actions">
-			<button class="btn btn-primary" onclick={() => showCreateForm = true}>
+			<button class="btn btn-primary" onclick={() => (showCreateForm = true)}>
 				Create Event
 			</button>
 		</div>
 	</div>
 
 	{#if showCreateForm}
-		<div class="modal-overlay" onclick={() => showCreateForm = false}>
+		<div class="modal-overlay" onclick={() => (showCreateForm = false)}>
 			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
-				<button class="close-button" onclick={() => showCreateForm = false}>&times;</button>
+				<button class="close-button" onclick={() => (showCreateForm = false)}>&times;</button>
 				<EconomicEventCreateForm onEventCreated={handleEventCreated} />
 			</div>
 		</div>
@@ -94,13 +95,16 @@
 				<button class="close-button" onclick={closeEventDetail}>&times;</button>
 				<div class="event-detail">
 					<h2>Event Details</h2>
-					
+
 					<div class="detail-section">
 						<h3>Basic Information</h3>
 						<div class="detail-grid">
 							<div class="detail-item">
 								<strong>Action:</strong>
-								<span>{getActionLabel(selectedEvent.action.id)} ({selectedEvent.action.resourceEffect})</span>
+								<span
+									>{getActionLabel(selectedEvent.action.id)} ({selectedEvent.action
+										.resourceEffect})</span
+								>
 							</div>
 							<div class="detail-item">
 								<strong>Date & Time:</strong>
@@ -164,13 +168,19 @@
 								{#if selectedEvent.resourceQuantity}
 									<div class="detail-item">
 										<strong>Resource Quantity:</strong>
-										<span>{selectedEvent.resourceQuantity.hasNumericalValue} {getUnitLabel(selectedEvent.resourceQuantity.hasUnit.id)}</span>
+										<span
+											>{selectedEvent.resourceQuantity.hasNumericalValue}
+											{getUnitLabel(selectedEvent.resourceQuantity.hasUnit.id)}</span
+										>
 									</div>
 								{/if}
 								{#if selectedEvent.effortQuantity}
 									<div class="detail-item">
 										<strong>Effort Quantity:</strong>
-										<span>{selectedEvent.effortQuantity.hasNumericalValue} {getUnitLabel(selectedEvent.effortQuantity.hasUnit.id)}</span>
+										<span
+											>{selectedEvent.effortQuantity.hasNumericalValue}
+											{getUnitLabel(selectedEvent.effortQuantity.hasUnit.id)}</span
+										>
 									</div>
 								{/if}
 							</div>
@@ -178,7 +188,10 @@
 					{/if}
 
 					<div class="detail-actions">
-						<button class="btn btn-danger" onclick={() => handleDeleteEvent(selectedEvent.id)}>
+						<button
+							class="btn btn-danger"
+							onclick={() => selectedEvent && handleDeleteEvent(selectedEvent.id)}
+						>
 							Delete Event
 						</button>
 					</div>
@@ -198,7 +211,7 @@
 			<div class="empty-state">
 				<h2>No Events Yet</h2>
 				<p>Create your first economic event to get started.</p>
-				<button class="btn btn-primary" onclick={() => showCreateForm = true}>
+				<button class="btn btn-primary" onclick={() => (showCreateForm = true)}>
 					Create Event
 				</button>
 			</div>
@@ -210,7 +223,7 @@
 							<h3>{getActionLabel(event.action.id)}</h3>
 							<span class="event-date">{formatDateTime(event.hasPointInTime || '')}</span>
 						</div>
-						
+
 						<div class="event-body">
 							{#if event.provider || event.receiver}
 								<div class="event-participants">
@@ -225,18 +238,19 @@
 									{/if}
 								</div>
 							{/if}
-							
+
 							{#if event.resourceInventoriedAs}
 								<div class="event-resource">
 									<span class="resource-name">📦 {event.resourceInventoriedAs.name}</span>
 									{#if event.resourceQuantity}
 										<span class="resource-quantity">
-											{event.resourceQuantity.hasNumericalValue} {getUnitLabel(event.resourceQuantity.hasUnit.id)}
+											{event.resourceQuantity.hasNumericalValue}
+											{getUnitLabel(event.resourceQuantity.hasUnit.id)}
 										</span>
 									{/if}
 								</div>
 							{/if}
-							
+
 							{#if event.note}
 								<div class="event-note">
 									<p>{event.note}</p>
@@ -531,4 +545,4 @@
 			align-items: flex-start;
 		}
 	}
-</style> 
+</style>

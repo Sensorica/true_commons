@@ -7,12 +7,14 @@
 	import economicEventsStore from '$lib/stores/economic-events.store.svelte';
 	import processesStore from '$lib/stores/processes.store.svelte';
 	import processSpecificationsStore from '$lib/stores/process-specifications.store.svelte';
+	import { getSchema } from '$lib/utils/get-schema';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	// State for foundation status
 	let foundationStatus = $state<any>(null);
 	let initializingFoundation = $state(false);
+	let introspectingSchema = $state(false);
 
 	// Quick stats for dashboard
 	let stats = $derived({
@@ -74,6 +76,29 @@
 		goto('/events');
 	}
 
+	async function introspectGraphQLSchema() {
+		if (introspectingSchema) return;
+
+		introspectingSchema = true;
+		console.log('🔍 Starting GraphQL schema introspection...');
+
+		try {
+			const result = await getSchema();
+			console.log('✅ Schema introspection completed successfully');
+			alert(
+				`Schema introspection completed! Found ${result.mutations.length} mutations total, ${result.unitMutations.length} unit-related mutations. Check the browser console for detailed output.`
+			);
+		} catch (error) {
+			console.error('❌ Schema introspection failed:', error);
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+			alert(
+				`Schema introspection failed: ${errorMessage}\n\nCheck the browser console for details.`
+			);
+		} finally {
+			introspectingSchema = false;
+		}
+	}
+
 	async function initializeFoundationComponents() {
 		if (initializingFoundation) return;
 
@@ -84,7 +109,9 @@
 			// Step 1: Check Holochain connection
 			console.log('🔌 Checking Holochain client connection...');
 			try {
-				const holochainClientService = await import('$lib/services/holochain_client_service.svelte');
+				const holochainClientService = await import(
+					'$lib/services/holochain_client_service.svelte'
+				);
 				console.log('Holochain client status:', {
 					isConnected: holochainClientService.default.isConnected,
 					isConnecting: holochainClientService.default.isConnecting,
@@ -110,23 +137,29 @@
 			console.log('⚙️ Initializing foundation service...');
 			await foundationService.initialize();
 			console.log('✅ Foundation service initialized successfully');
-			
+
 			// Step 4: Check status after initialization
 			console.log('🔍 Checking foundation status...');
 			foundationStatus = await foundationService.checkFoundationRequirements();
 			console.log('Foundation status after initialization:', foundationStatus);
-			
+
 			// Step 5: Reload all stores to get the newly created foundation data
 			console.log('🔄 Reloading stores...');
 			const storeReloads = [
 				{ name: 'units', fn: () => unitsStore.fetchAllUnits() },
 				{ name: 'actions', fn: () => actionsStore.fetchAllActions() },
-				{ name: 'resourceSpecifications', fn: () => resourcesStore.fetchAllResourceSpecifications() },
+				{
+					name: 'resourceSpecifications',
+					fn: () => resourcesStore.fetchAllResourceSpecifications()
+				},
 				{ name: 'agents', fn: () => agentsStore.fetchAllAgents() },
 				{ name: 'resources', fn: () => resourcesStore.fetchAllResources() },
 				{ name: 'events', fn: () => economicEventsStore.fetchAllEvents() },
 				{ name: 'processes', fn: () => processesStore.fetchAllProcesses() },
-				{ name: 'processSpecifications', fn: () => processSpecificationsStore.fetchAllProcessSpecifications() }
+				{
+					name: 'processSpecifications',
+					fn: () => processSpecificationsStore.fetchAllProcessSpecifications()
+				}
 			];
 
 			for (const store of storeReloads) {
@@ -138,13 +171,13 @@
 					console.warn(`⚠️ Failed to reload ${store.name}:`, err);
 				}
 			}
-			
+
 			// Step 6: Final status check
 			console.log('🔍 Final foundation status check...');
 			foundationStatus = await foundationService.checkFoundationRequirements();
 			console.log('✅ Foundation components initialized successfully');
 			console.log('Final foundation status:', foundationStatus);
-			
+
 			// Log detailed counts
 			console.log('📊 Store counts after initialization:', {
 				units: unitsStore.units.length,
@@ -158,12 +191,15 @@
 			});
 		} catch (err) {
 			console.error('❌ Foundation initialization failed:', err);
-			
+
 			// Show more detailed error to user
 			const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-			const errorDetails = foundationService.initializationError || 'No additional details available';
-			
-			alert(`Foundation initialization failed!\n\nError: ${errorMessage}\n\nDetails: ${errorDetails}\n\nPlease check the browser console for more information.`);
+			const errorDetails =
+				foundationService.initializationError || 'No additional details available';
+
+			alert(
+				`Foundation initialization failed!\n\nError: ${errorMessage}\n\nDetails: ${errorDetails}\n\nPlease check the browser console for more information.`
+			);
 		} finally {
 			initializingFoundation = false;
 		}
@@ -539,8 +575,10 @@
 			</div>
 		</div>
 
-		{#if !stats.foundation.isReady}
-			<div class="mt-4 text-center">
+		<div
+			class="mt-4 flex flex-col items-center space-y-3 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4"
+		>
+			{#if !stats.foundation.isReady}
 				<button
 					onclick={initializeFoundationComponents}
 					disabled={initializingFoundation}
@@ -567,8 +605,38 @@
 						Initialize Foundation Components
 					{/if}
 				</button>
-			</div>
-		{/if}
+			{/if}
+
+			<!-- Schema Introspection Button -->
+			<button
+				onclick={introspectGraphQLSchema}
+				disabled={introspectingSchema}
+				class="inline-flex items-center rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
+			>
+				{#if introspectingSchema}
+					<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					Introspecting...
+				{:else}
+					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+						></path>
+					</svg>
+					Get GraphQL Schema
+				{/if}
+			</button>
+		</div>
 	</div>
 
 	<!-- Recent Activity -->

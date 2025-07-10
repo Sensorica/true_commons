@@ -88,755 +88,637 @@
 	<title>{agent ? `${agent.name} - Agent Profile` : 'Agent Profile'} | True Commons</title>
 </svelte:head>
 
-<div class="agent-profile-page">
-	<div class="page-header">
-		<button class="back-button" onclick={goBack}> ← Back to Agents </button>
-		<h1>Agent Profile</h1>
+<div class="min-h-screen bg-gray-900">
+	<!-- Header -->
+	<div class="border-b border-gray-700 bg-gray-800 shadow-sm">
+		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+			<div class="flex h-16 items-center justify-between">
+				<button
+					onclick={goBack}
+					class="inline-flex items-center rounded-lg border border-gray-600 bg-gray-700 px-4 py-2 text-sm font-medium text-gray-200 transition-colors duration-200 hover:bg-gray-600 hover:text-white"
+				>
+					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 19l-7-7 7-7"
+						></path>
+					</svg>
+					Back to Agents
+				</button>
+
+				{#if agentsStore.myAgent?.id === agent?.id}
+					<div
+						class="inline-flex items-center rounded-full bg-emerald-900 px-3 py-1 text-sm font-medium text-emerald-300"
+					>
+						<svg class="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+							<path
+								d="M10.707 2.293a1 1 0 00-1.414 0l-9 9a1 1 0 001.414 1.414L10 4.414l8.293 8.293a1 1 0 001.414-1.414l-9-9z"
+							></path>
+						</svg>
+						Your Profile
+					</div>
+				{/if}
+			</div>
+		</div>
 	</div>
 
 	{#if loading}
-		<div class="loading">Loading agent profile...</div>
+		<div class="flex min-h-96 items-center justify-center">
+			<div class="text-center">
+				<div
+					class="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-400 border-t-transparent"
+				></div>
+				<p class="text-gray-400">Loading agent profile...</p>
+			</div>
+		</div>
 	{:else if error}
-		<div class="error-message">
-			<h3>Error</h3>
-			<p>{error}</p>
+		<div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+			<div class="rounded-xl border border-red-800 bg-red-900 p-8 text-center">
+				<svg
+					class="mx-auto mb-4 h-12 w-12 text-red-400"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+					></path>
+				</svg>
+				<h3 class="mb-2 text-lg font-semibold text-red-300">Error Loading Profile</h3>
+				<p class="text-red-400">{error}</p>
+			</div>
 		</div>
 	{:else if agent}
-		<div class="profile-container">
-			<!-- Agent Information -->
-			<div class="agent-info-section">
-				<AgentProfileDisplay {agent} showFullProfile={true} />
-
-				{#if agentsStore.myAgent?.id === agent.id}
-					<div class="my-agent-badge">
-						<span>🏠 This is your agent profile</span>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Statistics Cards -->
-			<div class="stats-grid">
-				<div class="stat-card">
-					<div class="stat-header">
-						<h3>Resources</h3>
-						<span class="stat-icon">📦</span>
-					</div>
-					<div class="stat-number">{stats.resources.total}</div>
-					<div class="stat-details">
-						<div class="stat-detail">
-							<span>Provided: {stats.resources.provided}</span>
-						</div>
-						<div class="stat-detail">
-							<span>Custodian: {stats.resources.custodian}</span>
-						</div>
-					</div>
-				</div>
-
-				<div class="stat-card">
-					<div class="stat-header">
-						<h3>Processes</h3>
-						<span class="stat-icon">🔄</span>
-					</div>
-					<div class="stat-number">{stats.processes.total}</div>
-					<div class="stat-details">
-						<div class="stat-detail">
-							<span>Finished: {stats.processes.finished}</span>
-						</div>
-						<div class="stat-detail">
-							<span>In Progress: {stats.processes.inProgress}</span>
-						</div>
-					</div>
-				</div>
-
-				<div class="stat-card">
-					<div class="stat-header">
-						<h3>Events</h3>
-						<span class="stat-icon">⚡</span>
-					</div>
-					<div class="stat-number">{stats.events.total}</div>
-					<div class="stat-details">
-						<div class="stat-detail">
-							<span>Provided: {stats.events.provided}</span>
-						</div>
-						<div class="stat-detail">
-							<span>Received: {stats.events.received}</span>
-						</div>
-					</div>
+		<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+			<!-- Hero Section -->
+			<div class="mb-8 overflow-hidden rounded-2xl border border-gray-700 bg-gray-800 shadow-lg">
+				<div class="px-8 py-12">
+					<AgentProfileDisplay {agent} showFullProfile={true} />
 				</div>
 			</div>
 
-			<!-- Tabs -->
-			<div class="tabs">
-				<button
-					class="tab {activeTab === 'overview' ? 'active' : ''}"
-					onclick={() => (activeTab = 'overview')}
+			<!-- Statistics Grid -->
+			<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+				<!-- Resources Card -->
+				<div
+					class="transform rounded-xl border border-gray-700 bg-gray-800 p-6 shadow-lg transition-transform duration-200 hover:scale-105"
 				>
-					Overview
-				</button>
-				<button
-					class="tab {activeTab === 'resources' ? 'active' : ''}"
-					onclick={() => (activeTab = 'resources')}
+					<div class="mb-4 flex items-center justify-between">
+						<div class="rounded-lg bg-blue-900 p-2">
+							<svg
+								class="h-6 w-6 text-blue-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+								></path>
+							</svg>
+						</div>
+						<span class="text-3xl font-bold text-blue-400">{stats.resources.total}</span>
+					</div>
+					<h3 class="mb-3 text-lg font-semibold text-white">Resources</h3>
+					<div class="flex justify-between text-sm text-gray-400">
+						<span>Provided: {stats.resources.provided}</span>
+						<span>Custodian: {stats.resources.custodian}</span>
+					</div>
+				</div>
+
+				<!-- Processes Card -->
+				<div
+					class="transform rounded-xl border border-gray-700 bg-gray-800 p-6 shadow-lg transition-transform duration-200 hover:scale-105"
 				>
-					Resources ({agentResources.length})
-				</button>
-				<button
-					class="tab {activeTab === 'processes' ? 'active' : ''}"
-					onclick={() => (activeTab = 'processes')}
+					<div class="mb-4 flex items-center justify-between">
+						<div class="rounded-lg bg-emerald-900 p-2">
+							<svg
+								class="h-6 w-6 text-emerald-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+								></path>
+							</svg>
+						</div>
+						<span class="text-3xl font-bold text-emerald-400">{stats.processes.total}</span>
+					</div>
+					<h3 class="mb-3 text-lg font-semibold text-white">Processes</h3>
+					<div class="flex justify-between text-sm text-gray-400">
+						<span>Finished: {stats.processes.finished}</span>
+						<span>In Progress: {stats.processes.inProgress}</span>
+					</div>
+				</div>
+
+				<!-- Events Card -->
+				<div
+					class="transform rounded-xl border border-gray-700 bg-gray-800 p-6 shadow-lg transition-transform duration-200 hover:scale-105"
 				>
-					Processes ({agentProcesses.length})
-				</button>
-				<button
-					class="tab {activeTab === 'events' ? 'active' : ''}"
-					onclick={() => (activeTab = 'events')}
-				>
-					Events ({agentEvents.length})
-				</button>
+					<div class="mb-4 flex items-center justify-between">
+						<div class="rounded-lg bg-purple-900 p-2">
+							<svg
+								class="h-6 w-6 text-purple-400"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M13 10V3L4 14h7v7l9-11h-7z"
+								></path>
+							</svg>
+						</div>
+						<span class="text-3xl font-bold text-purple-400">{stats.events.total}</span>
+					</div>
+					<h3 class="mb-3 text-lg font-semibold text-white">Events</h3>
+					<div class="flex justify-between text-sm text-gray-400">
+						<span>Provided: {stats.events.provided}</span>
+						<span>Received: {stats.events.received}</span>
+					</div>
+				</div>
 			</div>
 
-			<!-- Tab Content -->
-			<div class="tab-content">
-				{#if activeTab === 'overview'}
-					<div class="overview-content">
-						<div class="overview-grid">
-							<!-- Recent Resources -->
-							<div class="overview-section">
-								<h3>Recent Resources</h3>
-								{#if agentResources.length === 0}
-									<p class="empty-message">No resources found</p>
-								{:else}
-									<div class="resource-list">
-										{#each agentResources.slice(0, 3) as resource}
-											<div class="resource-item">
-												<div class="resource-header">
-													<span class="resource-name">{resource.name}</span>
-													<span class="resource-role">
-														{resource.providedBy?.id === agentId ? 'Provider' : 'Custodian'}
-													</span>
+			<!-- Main Content -->
+			<div class="overflow-hidden rounded-2xl border border-gray-700 bg-gray-800 shadow-lg">
+				<!-- Navigation Tabs -->
+				<div class="border-b border-gray-700">
+					<nav class="flex space-x-8 px-6" aria-label="Tabs">
+						<button
+							onclick={() => (activeTab = 'overview')}
+							class="border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors duration-200 {activeTab ===
+							'overview'
+								? 'border-blue-400 text-blue-400'
+								: 'border-transparent text-gray-400 hover:border-gray-600 hover:text-gray-200'}"
+						>
+							Overview
+						</button>
+						<button
+							onclick={() => (activeTab = 'resources')}
+							class="border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors duration-200 {activeTab ===
+							'resources'
+								? 'border-blue-400 text-blue-400'
+								: 'border-transparent text-gray-400 hover:border-gray-600 hover:text-gray-200'}"
+						>
+							Resources
+							<span
+								class="ml-2 inline-flex items-center rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300"
+							>
+								{agentResources.length}
+							</span>
+						</button>
+						<button
+							onclick={() => (activeTab = 'processes')}
+							class="border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors duration-200 {activeTab ===
+							'processes'
+								? 'border-blue-400 text-blue-400'
+								: 'border-transparent text-gray-400 hover:border-gray-600 hover:text-gray-200'}"
+						>
+							Processes
+							<span
+								class="ml-2 inline-flex items-center rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300"
+							>
+								{agentProcesses.length}
+							</span>
+						</button>
+						<button
+							onclick={() => (activeTab = 'events')}
+							class="border-b-2 px-1 py-4 text-sm font-medium whitespace-nowrap transition-colors duration-200 {activeTab ===
+							'events'
+								? 'border-blue-400 text-blue-400'
+								: 'border-transparent text-gray-400 hover:border-gray-600 hover:text-gray-200'}"
+						>
+							Events
+							<span
+								class="ml-2 inline-flex items-center rounded-full bg-gray-700 px-2.5 py-0.5 text-xs font-medium text-gray-300"
+							>
+								{agentEvents.length}
+							</span>
+						</button>
+					</nav>
+				</div>
+
+				<!-- Tab Content -->
+				<div class="p-6">
+					{#if activeTab === 'overview'}
+						<div class="space-y-8">
+							<!-- Overview Grid -->
+							<div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
+								<!-- Recent Resources -->
+								<div class="rounded-xl bg-gray-700 p-6">
+									<div class="mb-4 flex items-center justify-between">
+										<h3 class="text-lg font-semibold text-white">Recent Resources</h3>
+										<svg
+											class="h-5 w-5 text-blue-400"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+											></path>
+										</svg>
+									</div>
+									{#if agentResources.length === 0}
+										<p class="py-8 text-center text-sm text-gray-400 italic">No resources found</p>
+									{:else}
+										<div class="space-y-3">
+											{#each agentResources.slice(0, 3) as resource}
+												<div class="rounded-lg border border-gray-600 bg-gray-800 p-4">
+													<div class="mb-2 flex items-start justify-between">
+														<h4 class="font-medium text-white">{resource.name}</h4>
+														<span
+															class="inline-flex items-center rounded-full bg-blue-900 px-2 py-1 text-xs font-medium text-blue-300"
+														>
+															{resource.providedBy?.id === agentId ? 'Provider' : 'Custodian'}
+														</span>
+													</div>
+													{#if resource.note}
+														<p class="mb-2 text-sm text-gray-400">{resource.note}</p>
+													{/if}
+													{#if resource.conformsTo}
+														<div class="text-xs text-gray-500">
+															Type: {resource.conformsTo.name}
+														</div>
+													{/if}
 												</div>
-												{#if resource.note}
-													<div class="resource-note">{resource.note}</div>
-												{/if}
+											{/each}
+										</div>
+										{#if agentResources.length > 3}
+											<button
+												onclick={() => (activeTab = 'resources')}
+												class="mt-4 w-full text-sm font-medium text-blue-400 hover:text-blue-300"
+											>
+												View all {agentResources.length} resources →
+											</button>
+										{/if}
+									{/if}
+								</div>
+
+								<!-- Recent Processes -->
+								<div class="rounded-xl bg-gray-700 p-6">
+									<div class="mb-4 flex items-center justify-between">
+										<h3 class="text-lg font-semibold text-white">Recent Processes</h3>
+										<svg
+											class="h-5 w-5 text-emerald-400"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+											></path>
+										</svg>
+									</div>
+									{#if agentProcesses.length === 0}
+										<p class="py-8 text-center text-sm text-gray-400 italic">No processes found</p>
+									{:else}
+										<div class="space-y-3">
+											{#each agentProcesses.slice(0, 3) as process}
+												<div class="rounded-lg border border-gray-600 bg-gray-800 p-4">
+													<div class="mb-2 flex items-start justify-between">
+														<h4 class="font-medium text-white">{process.name}</h4>
+														<span
+															class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium {process.isFinished
+																? 'bg-emerald-900 text-emerald-300'
+																: 'bg-amber-900 text-amber-300'}"
+														>
+															{process.isFinished ? '✓ Finished' : '⏳ In Progress'}
+														</span>
+													</div>
+													{#if process.note}
+														<p class="mb-2 text-sm text-gray-400">{process.note}</p>
+													{/if}
+													{#if process.basedOn}
+														<div class="text-xs text-gray-500">
+															Based on: {process.basedOn.name}
+														</div>
+													{/if}
+												</div>
+											{/each}
+										</div>
+										{#if agentProcesses.length > 3}
+											<button
+												onclick={() => (activeTab = 'processes')}
+												class="mt-4 w-full text-sm font-medium text-blue-400 hover:text-blue-300"
+											>
+												View all {agentProcesses.length} processes →
+											</button>
+										{/if}
+									{/if}
+								</div>
+
+								<!-- Recent Events -->
+								<div class="rounded-xl bg-gray-700 p-6">
+									<div class="mb-4 flex items-center justify-between">
+										<h3 class="text-lg font-semibold text-white">Recent Events</h3>
+										<svg
+											class="h-5 w-5 text-purple-400"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M13 10V3L4 14h7v7l9-11h-7z"
+											></path>
+										</svg>
+									</div>
+									{#if agentEvents.length === 0}
+										<p class="py-8 text-center text-sm text-gray-400 italic">No events found</p>
+									{:else}
+										<div class="space-y-3">
+											{#each agentEvents.slice(0, 3) as event}
+												<div class="rounded-lg border border-gray-600 bg-gray-800 p-4">
+													<div class="mb-2 flex items-start justify-between">
+														<h4 class="font-medium text-white">
+															{getActionLabel(event.action.id)}
+														</h4>
+														<span class="text-xs text-gray-400"
+															>{formatDateTime(event.hasPointInTime || '')}</span
+														>
+													</div>
+													<div class="mb-2 text-sm text-gray-400">
+														{event.provider?.id === agentId ? 'Provider' : 'Receiver'}
+													</div>
+													{#if event.resourceInventoriedAs}
+														<div class="mb-1 text-xs text-gray-500">
+															Resource: {event.resourceInventoriedAs.name}
+														</div>
+													{/if}
+													{#if event.resourceQuantity}
+														<div class="text-xs text-gray-500">
+															Quantity: {formatQuantity(event.resourceQuantity)}
+														</div>
+													{/if}
+												</div>
+											{/each}
+										</div>
+										{#if agentEvents.length > 3}
+											<button
+												onclick={() => (activeTab = 'events')}
+												class="mt-4 w-full text-sm font-medium text-blue-400 hover:text-blue-300"
+											>
+												View all {agentEvents.length} events →
+											</button>
+										{/if}
+									{/if}
+								</div>
+							</div>
+						</div>
+					{:else if activeTab === 'resources'}
+						<div>
+							<div class="mb-6 flex items-center justify-between">
+								<h2 class="text-xl font-semibold text-white">Resources</h2>
+							</div>
+							{#if agentResources.length === 0}
+								<div class="py-16 text-center">
+									<svg
+										class="mx-auto mb-4 h-16 w-16 text-gray-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+										></path>
+									</svg>
+									<h3 class="mb-2 text-lg font-medium text-white">No resources found</h3>
+									<p class="text-gray-400">This agent has no resources associated with them.</p>
+								</div>
+							{:else}
+								<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+									{#each agentResources as resource}
+										<div
+											class="rounded-xl border border-gray-600 bg-gray-700 p-6 transition-shadow duration-200 hover:shadow-lg"
+										>
+											<div class="mb-4 flex items-start justify-between">
+												<h3 class="text-lg font-semibold text-white">{resource.name}</h3>
+												<span
+													class="inline-flex items-center rounded-full bg-blue-900 px-2.5 py-0.5 text-xs font-medium text-blue-300"
+												>
+													{resource.providedBy?.id === agentId ? 'Provider' : 'Custodian'}
+												</span>
+											</div>
+											{#if resource.note}
+												<p class="mb-4 line-clamp-3 text-sm text-gray-400">{resource.note}</p>
+											{/if}
+											<div class="space-y-2">
 												{#if resource.conformsTo}
-													<div class="resource-spec">Type: {resource.conformsTo.name}</div>
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Type:</span>
+														<span class="text-gray-400">{resource.conformsTo.name}</span>
+													</div>
+												{/if}
+												{#if resource.currentQuantity}
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Quantity:</span>
+														<span class="text-gray-400"
+															>{formatQuantity(resource.currentQuantity)}</span
+														>
+													</div>
 												{/if}
 											</div>
-										{/each}
-									</div>
-									{#if agentResources.length > 3}
-										<button class="view-all-btn" onclick={() => (activeTab = 'resources')}>
-											View all {agentResources.length} resources →
-										</button>
-									{/if}
-								{/if}
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else if activeTab === 'processes'}
+						<div>
+							<div class="mb-6 flex items-center justify-between">
+								<h2 class="text-xl font-semibold text-white">Processes</h2>
 							</div>
-
-							<!-- Recent Processes -->
-							<div class="overview-section">
-								<h3>Recent Processes</h3>
-								{#if agentProcesses.length === 0}
-									<p class="empty-message">No processes found</p>
-								{:else}
-									<div class="process-list">
-										{#each agentProcesses.slice(0, 3) as process}
-											<div class="process-item">
-												<div class="process-header">
-													<span class="process-name">{process.name}</span>
-													<span
-														class="process-status {process.isFinished ? 'finished' : 'in-progress'}"
-													>
-														{process.isFinished ? '✓' : '⏳'}
-													</span>
-												</div>
-												{#if process.note}
-													<div class="process-note">{process.note}</div>
-												{/if}
+							{#if agentProcesses.length === 0}
+								<div class="py-16 text-center">
+									<svg
+										class="mx-auto mb-4 h-16 w-16 text-gray-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+										></path>
+									</svg>
+									<h3 class="mb-2 text-lg font-medium text-white">No processes found</h3>
+									<p class="text-gray-400">This agent has no processes associated with them.</p>
+								</div>
+							{:else}
+								<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+									{#each agentProcesses as process}
+										<div
+											class="rounded-xl border border-gray-600 bg-gray-700 p-6 transition-shadow duration-200 hover:shadow-lg"
+										>
+											<div class="mb-4 flex items-start justify-between">
+												<h3 class="text-lg font-semibold text-white">{process.name}</h3>
+												<span
+													class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {process.isFinished
+														? 'bg-emerald-900 text-emerald-300'
+														: 'bg-amber-900 text-amber-300'}"
+												>
+													{process.isFinished ? '✓ Finished' : '⏳ In Progress'}
+												</span>
+											</div>
+											{#if process.note}
+												<p class="mb-4 line-clamp-3 text-sm text-gray-400">{process.note}</p>
+											{/if}
+											<div class="space-y-2">
 												{#if process.basedOn}
-													<div class="process-spec">Based on: {process.basedOn.name}</div>
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Based on:</span>
+														<span class="text-gray-400">{process.basedOn.name}</span>
+													</div>
+												{/if}
+												{#if process.hasBeginning}
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Started:</span>
+														<span class="text-gray-400">{formatDateTime(process.hasBeginning)}</span
+														>
+													</div>
+												{/if}
+												{#if process.hasEnd}
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Ended:</span>
+														<span class="text-gray-400">{formatDateTime(process.hasEnd)}</span>
+													</div>
 												{/if}
 											</div>
-										{/each}
-									</div>
-									{#if agentProcesses.length > 3}
-										<button class="view-all-btn" onclick={() => (activeTab = 'processes')}>
-											View all {agentProcesses.length} processes →
-										</button>
-									{/if}
-								{/if}
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else if activeTab === 'events'}
+						<div>
+							<div class="mb-6 flex items-center justify-between">
+								<h2 class="text-xl font-semibold text-white">Events</h2>
 							</div>
-
-							<!-- Recent Events -->
-							<div class="overview-section">
-								<h3>Recent Events</h3>
-								{#if agentEvents.length === 0}
-									<p class="empty-message">No events found</p>
-								{:else}
-									<div class="event-list">
-										{#each agentEvents.slice(0, 3) as event}
-											<div class="event-item">
-												<div class="event-header">
-													<span class="event-action">{getActionLabel(event.action.id)}</span>
-													<span class="event-time"
-														>{formatDateTime(event.hasPointInTime || '')}</span
-													>
-												</div>
-												<div class="event-role">
+							{#if agentEvents.length === 0}
+								<div class="py-16 text-center">
+									<svg
+										class="mx-auto mb-4 h-16 w-16 text-gray-500"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M13 10V3L4 14h7v7l9-11h-7z"
+										></path>
+									</svg>
+									<h3 class="mb-2 text-lg font-medium text-white">No events found</h3>
+									<p class="text-gray-400">
+										This agent has no economic events associated with them.
+									</p>
+								</div>
+							{:else}
+								<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+									{#each agentEvents as event}
+										<div
+											class="rounded-xl border border-gray-600 bg-gray-700 p-6 transition-shadow duration-200 hover:shadow-lg"
+										>
+											<div class="mb-4 flex items-start justify-between">
+												<h3 class="text-lg font-semibold text-white">
+													{getActionLabel(event.action.id)}
+												</h3>
+												<span class="text-xs text-gray-400"
+													>{formatDateTime(event.hasPointInTime || '')}</span
+												>
+											</div>
+											<div class="mb-4">
+												<span
+													class="inline-flex items-center rounded-full bg-purple-900 px-2.5 py-0.5 text-xs font-medium text-purple-300"
+												>
 													{event.provider?.id === agentId ? 'Provider' : 'Receiver'}
-												</div>
+												</span>
+											</div>
+											<div class="space-y-2">
 												{#if event.resourceInventoriedAs}
-													<div class="event-resource">
-														Resource: {event.resourceInventoriedAs.name}
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Resource:</span>
+														<span class="text-gray-400">{event.resourceInventoriedAs.name}</span>
 													</div>
 												{/if}
 												{#if event.resourceQuantity}
-													<div class="event-quantity">
-														Quantity: {formatQuantity(event.resourceQuantity)}
+													<div class="flex items-center text-sm">
+														<span class="mr-2 font-medium text-gray-300">Quantity:</span>
+														<span class="text-gray-400"
+															>{formatQuantity(event.resourceQuantity)}</span
+														>
 													</div>
 												{/if}
+												{#if event.note}
+													<div class="mt-3 text-sm text-gray-400">{event.note}</div>
+												{/if}
 											</div>
-										{/each}
-									</div>
-									{#if agentEvents.length > 3}
-										<button class="view-all-btn" onclick={() => (activeTab = 'events')}>
-											View all {agentEvents.length} events →
-										</button>
-									{/if}
-								{/if}
-							</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
 						</div>
-					</div>
-				{:else if activeTab === 'resources'}
-					<div class="resources-content">
-						{#if agentResources.length === 0}
-							<div class="empty-state">
-								<h3>No resources found</h3>
-								<p>This agent has no resources associated with them.</p>
-							</div>
-						{:else}
-							<div class="resource-grid">
-								{#each agentResources as resource}
-									<div class="resource-card">
-										<div class="resource-header">
-											<h4>{resource.name}</h4>
-											<span class="resource-role-badge">
-												{resource.providedBy?.id === agentId ? 'Provider' : 'Custodian'}
-											</span>
-										</div>
-										{#if resource.note}
-											<p class="resource-description">{resource.note}</p>
-										{/if}
-										{#if resource.conformsTo}
-											<div class="resource-spec">
-												<strong>Type:</strong>
-												{resource.conformsTo.name}
-											</div>
-										{/if}
-										{#if resource.currentQuantity}
-											<div class="resource-quantity">
-												<strong>Quantity:</strong>
-												{formatQuantity(resource.currentQuantity)}
-											</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				{:else if activeTab === 'processes'}
-					<div class="processes-content">
-						{#if agentProcesses.length === 0}
-							<div class="empty-state">
-								<h3>No processes found</h3>
-								<p>This agent has no processes associated with them.</p>
-							</div>
-						{:else}
-							<div class="process-grid">
-								{#each agentProcesses as process}
-									<div class="process-card">
-										<div class="process-header">
-											<h4>{process.name}</h4>
-											<span
-												class="process-status-badge {process.isFinished
-													? 'finished'
-													: 'in-progress'}"
-											>
-												{process.isFinished ? '✓ Finished' : '⏳ In Progress'}
-											</span>
-										</div>
-										{#if process.note}
-											<p class="process-description">{process.note}</p>
-										{/if}
-										{#if process.basedOn}
-											<div class="process-spec">
-												<strong>Based on:</strong>
-												{process.basedOn.name}
-											</div>
-										{/if}
-										{#if process.hasBeginning}
-											<div class="process-timing">
-												<strong>Started:</strong>
-												{formatDateTime(process.hasBeginning)}
-											</div>
-										{/if}
-										{#if process.hasEnd}
-											<div class="process-timing">
-												<strong>Ended:</strong>
-												{formatDateTime(process.hasEnd)}
-											</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				{:else if activeTab === 'events'}
-					<div class="events-content">
-						{#if agentEvents.length === 0}
-							<div class="empty-state">
-								<h3>No events found</h3>
-								<p>This agent has no economic events associated with them.</p>
-							</div>
-						{:else}
-							<div class="event-grid">
-								{#each agentEvents as event}
-									<div class="event-card">
-										<div class="event-header">
-											<h4>{getActionLabel(event.action.id)}</h4>
-											<span class="event-time">{formatDateTime(event.hasPointInTime || '')}</span>
-										</div>
-										<div class="event-role-badge">
-											{event.provider?.id === agentId ? 'Provider' : 'Receiver'}
-										</div>
-										{#if event.resourceInventoriedAs}
-											<div class="event-resource">
-												<strong>Resource:</strong>
-												{event.resourceInventoriedAs.name}
-											</div>
-										{/if}
-										{#if event.resourceQuantity}
-											<div class="event-quantity">
-												<strong>Quantity:</strong>
-												{formatQuantity(event.resourceQuantity)}
-											</div>
-										{/if}
-										{#if event.note}
-											<div class="event-note">{event.note}</div>
-										{/if}
-									</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				{/if}
+					{/if}
+				</div>
 			</div>
 		</div>
 	{:else}
-		<div class="error-message">
-			<h3>Agent Not Found</h3>
-			<p>The requested agent could not be found.</p>
+		<div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+			<div class="rounded-xl border border-gray-700 bg-gray-800 p-8 text-center">
+				<svg
+					class="mx-auto mb-4 h-12 w-12 text-gray-400"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+					></path>
+				</svg>
+				<h3 class="mb-2 text-lg font-semibold text-white">Agent Not Found</h3>
+				<p class="text-gray-400">The requested agent could not be found.</p>
+			</div>
 		</div>
 	{/if}
 </div>
 
 <style>
-	.agent-profile-page {
-		padding: 2rem;
-		max-width: 1200px;
-		margin: 0 auto;
-	}
-
-	.page-header {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		margin-bottom: 2rem;
-	}
-
-	.back-button {
-		background: none;
-		border: none;
-		color: var(--primary-color);
-		cursor: pointer;
-		font-size: 1rem;
-		padding: 0.5rem;
-		border-radius: 4px;
-		transition: background-color 0.2s ease;
-	}
-
-	.back-button:hover {
-		background-color: rgba(0, 123, 255, 0.1);
-	}
-
-	.page-header h1 {
-		margin: 0;
-		color: var(--primary-color);
-	}
-
-	.loading {
-		text-align: center;
-		padding: 3rem;
-		color: #666;
-	}
-
-	.error-message {
-		background: #f8d7da;
-		border: 1px solid #f5c6cb;
-		border-radius: 8px;
-		padding: 2rem;
-		text-align: center;
-		color: #721c24;
-	}
-
-	.error-message h3 {
-		margin: 0 0 1rem 0;
-	}
-
-	.error-message p {
-		margin: 0;
-	}
-
-	.profile-container {
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-	}
-
-	.agent-info-section {
-		background: white;
-		border: 1px solid #e9ecef;
-		border-radius: 8px;
-		padding: 2rem;
-		position: relative;
-	}
-
-	.my-agent-badge {
-		position: absolute;
-		top: 1rem;
-		right: 1rem;
-		background: #d4edda;
-		color: #155724;
-		padding: 0.5rem 1rem;
-		border-radius: 20px;
-		font-size: 0.9rem;
-		font-weight: 500;
-	}
-
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		gap: 1.5rem;
-	}
-
-	.stat-card {
-		background: white;
-		border: 1px solid #e9ecef;
-		border-radius: 8px;
-		padding: 1.5rem;
-		text-align: center;
-	}
-
-	.stat-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 1rem;
-	}
-
-	.stat-header h3 {
-		margin: 0;
-		color: #333;
-		font-size: 1.1rem;
-	}
-
-	.stat-icon {
-		font-size: 1.5rem;
-	}
-
-	.stat-number {
-		font-size: 2.5rem;
-		font-weight: bold;
-		color: var(--primary-color);
-		margin-bottom: 0.5rem;
-	}
-
-	.stat-details {
-		display: flex;
-		justify-content: space-between;
-		gap: 1rem;
-	}
-
-	.stat-detail {
-		font-size: 0.9rem;
-		color: #666;
-	}
-
-	.tabs {
-		display: flex;
-		gap: 1rem;
-		border-bottom: 2px solid #e9ecef;
-		padding-bottom: 1rem;
-	}
-
-	.tab {
-		padding: 0.75rem 1.5rem;
-		border: none;
-		background: #f8f9fa;
-		border-radius: 4px;
-		cursor: pointer;
-		transition: all 0.3s ease;
-		color: #333;
-		font-weight: 500;
-	}
-
-	.tab.active {
-		background: var(--primary-color);
-		color: white;
-	}
-
-	.tab:hover:not(.active) {
-		background: #e9ecef;
-	}
-
-	.tab-content {
-		background: white;
-		border: 1px solid #e9ecef;
-		border-radius: 8px;
-		padding: 2rem;
-		min-height: 400px;
-	}
-
-	.overview-content {
-		width: 100%;
-	}
-
-	.overview-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-		gap: 2rem;
-	}
-
-	.overview-section {
-		background: #f8f9fa;
-		border-radius: 8px;
-		padding: 1.5rem;
-	}
-
-	.overview-section h3 {
-		margin: 0 0 1rem 0;
-		color: var(--primary-color);
-		border-bottom: 2px solid #e9ecef;
-		padding-bottom: 0.5rem;
-	}
-
-	.empty-message {
-		color: #666;
-		font-style: italic;
-		text-align: center;
-		padding: 2rem;
-	}
-
-	.resource-list,
-	.process-list,
-	.event-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.resource-item,
-	.process-item,
-	.event-item {
-		background: white;
-		padding: 1rem;
-		border-radius: 6px;
-		border: 1px solid #e9ecef;
-	}
-
-	.resource-header,
-	.process-header,
-	.event-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 0.5rem;
-	}
-
-	.resource-name,
-	.process-name,
-	.event-action {
-		font-weight: 600;
-		color: #333;
-	}
-
-	.resource-role,
-	.process-status,
-	.event-time {
-		font-size: 0.9rem;
-		color: #666;
-	}
-
-	.resource-note,
-	.process-note,
-	.event-role,
-	.resource-spec,
-	.process-spec,
-	.event-resource,
-	.event-quantity {
-		font-size: 0.9rem;
-		color: #666;
-		margin-bottom: 0.25rem;
-	}
-
-	.process-status.finished {
-		color: #155724;
-	}
-
-	.process-status.in-progress {
-		color: #856404;
-	}
-
-	.view-all-btn {
-		background: none;
-		border: none;
-		color: var(--primary-color);
-		cursor: pointer;
-		font-size: 0.9rem;
-		margin-top: 1rem;
-		padding: 0.5rem;
-		border-radius: 4px;
-		transition: background-color 0.2s ease;
-	}
-
-	.view-all-btn:hover {
-		background-color: rgba(0, 123, 255, 0.1);
-	}
-
-	.empty-state {
-		text-align: center;
-		padding: 3rem;
-		color: #666;
-	}
-
-	.empty-state h3 {
-		margin: 0 0 1rem 0;
-		color: #333;
-	}
-
-	.empty-state p {
-		margin: 0;
-	}
-
-	.resource-grid,
-	.process-grid,
-	.event-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		gap: 1.5rem;
-	}
-
-	.resource-card,
-	.process-card,
-	.event-card {
-		background: #f8f9fa;
-		border: 1px solid #e9ecef;
-		border-radius: 8px;
-		padding: 1.5rem;
-		transition: transform 0.2s ease;
-	}
-
-	.resource-card:hover,
-	.process-card:hover,
-	.event-card:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-	}
-
-	.resource-card h4,
-	.process-card h4,
-	.event-card h4 {
-		margin: 0;
-		color: var(--primary-color);
-		font-size: 1.1rem;
-	}
-
-	.resource-role-badge,
-	.process-status-badge,
-	.event-role-badge {
-		font-size: 0.8rem;
-		padding: 0.25rem 0.5rem;
-		border-radius: 12px;
-		font-weight: 500;
-	}
-
-	.resource-role-badge {
-		background: #e3f2fd;
-		color: #1976d2;
-	}
-
-	.process-status-badge.finished {
-		background: #d4edda;
-		color: #155724;
-	}
-
-	.process-status-badge.in-progress {
-		background: #fff3cd;
-		color: #856404;
-	}
-
-	.event-role-badge {
-		background: #f3e5f5;
-		color: #7b1fa2;
-	}
-
-	.resource-description,
-	.process-description {
-		color: #666;
-		margin: 1rem 0;
-		line-height: 1.4;
-	}
-
-	.resource-spec,
-	.process-spec,
-	.process-timing,
-	.event-resource,
-	.event-quantity,
-	.event-note {
-		font-size: 0.9rem;
-		color: #666;
-		margin-bottom: 0.5rem;
-	}
-
-	.resource-quantity {
-		font-size: 0.9rem;
-		color: #666;
-	}
-
-	@media (max-width: 768px) {
-		.agent-profile-page {
-			padding: 1rem;
-		}
-
-		.stats-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.overview-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.resource-grid,
-		.process-grid,
-		.event-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.tabs {
-			flex-direction: column;
-			gap: 0.5rem;
-		}
-
-		.stat-details {
-			flex-direction: column;
-			gap: 0.5rem;
-		}
+	/* Custom utility for line clamping if not available */
+	.line-clamp-3 {
+		display: -webkit-box;
+		line-clamp: 3;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 </style>

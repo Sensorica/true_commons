@@ -29,6 +29,11 @@ export interface EconomicEventsStore {
 	getEventsByResource(resourceId: string): EconomicEvent[];
 	getEventsByAgent(agentId: string): EconomicEvent[];
 	getEventsByAction(actionId: string): EconomicEvent[];
+	getEventStatsByAgent(agentId: string): {
+		total: number;
+		provided: number;
+		received: number;
+	};
 }
 
 // Convert string queries to gql documents
@@ -146,7 +151,7 @@ function createEconomicEventsStore(): EconomicEventsStore {
 		if (!foundationService.isInitialized) {
 			try {
 				await foundationService.initialize();
-			} catch (err) {
+			} catch {
 				errors.push('Foundation service initialization failed');
 				return errors;
 			}
@@ -154,13 +159,17 @@ function createEconomicEventsStore(): EconomicEventsStore {
 
 		const foundationStatus = await foundationService.checkFoundationRequirements();
 		if (!foundationStatus.allReady) {
-			errors.push('Foundation components not ready. Please initialize foundation components first.');
+			errors.push(
+				'Foundation components not ready. Please initialize foundation components first.'
+			);
 			return errors;
 		}
 
 		// Validate Action exists
 		if (!actionsStore.getActionById(event.action)) {
-			errors.push(`Action "${event.action}" not found. Available actions: ${actionsStore.actions.map(a => a.id).join(', ')}`);
+			errors.push(
+				`Action "${event.action}" not found. Available actions: ${actionsStore.actions.map((a) => a.id).join(', ')}`
+			);
 		}
 
 		// Validate Provider Agent exists (if provided)
@@ -174,17 +183,26 @@ function createEconomicEventsStore(): EconomicEventsStore {
 		}
 
 		// Validate Resource exists (if provided)
-		if (event.resourceInventoriedAs && !resourcesStore.getResourceById(event.resourceInventoriedAs)) {
+		if (
+			event.resourceInventoriedAs &&
+			!resourcesStore.getResourceById(event.resourceInventoriedAs)
+		) {
 			errors.push(`Resource "${event.resourceInventoriedAs}" not found`);
 		}
 
 		// Validate ResourceSpecification exists (if provided)
-		if (event.resourceConformsTo && !resourcesStore.getResourceSpecificationById(event.resourceConformsTo)) {
+		if (
+			event.resourceConformsTo &&
+			!resourcesStore.getResourceSpecificationById(event.resourceConformsTo)
+		) {
 			errors.push(`Resource specification "${event.resourceConformsTo}" not found`);
 		}
 
 		// Validate Units in quantities (if provided)
-		if (event.resourceQuantity?.hasUnit && !unitsStore.getUnitById(event.resourceQuantity.hasUnit)) {
+		if (
+			event.resourceQuantity?.hasUnit &&
+			!unitsStore.getUnitById(event.resourceQuantity.hasUnit)
+		) {
 			errors.push(`Unit "${event.resourceQuantity.hasUnit}" not found for resource quantity`);
 		}
 
@@ -274,7 +292,10 @@ function createEconomicEventsStore(): EconomicEventsStore {
 	/**
 	 * Updates an existing economic event in the hREA system.
 	 */
-	async function updateEvent(id: string, eventData: EconomicEventUpdateParams): Promise<EconomicEvent> {
+	async function updateEvent(
+		id: string,
+		eventData: EconomicEventUpdateParams
+	): Promise<EconomicEvent> {
 		return withLoadingState(
 			async () => {
 				if (!hreaService.isInitialized) {
@@ -344,84 +365,30 @@ function createEconomicEventsStore(): EconomicEventsStore {
 	 * Gets events related to a specific resource
 	 */
 	function getEventsByResource(resourceId: string): EconomicEvent[] {
-		return events.filter(event => event.resourceInventoriedAs?.id === resourceId);
+		return events.filter((event) => event.resourceInventoriedAs?.id === resourceId);
 	}
 
 	/**
 	 * Gets economic events by agent ID (where agent is provider or receiver)
 	 */
 	function getEventsByAgent(agentId: string): EconomicEvent[] {
-		return events.filter(event =>
-			event.provider?.id === agentId ||
-			event.receiver?.id === agentId
+		return events.filter(
+			(event) => event.provider?.id === agentId || event.receiver?.id === agentId
 		);
 	}
 
 	/**
-	 * Gets economic events by agent ID with additional filtering
-	 */
-	function getEventsByAgentWithFilter(agentId: string, options: {
-		includeProvided?: boolean;
-		includeReceived?: boolean;
-		actionId?: string;
-		resourceId?: string;
-		fromDate?: string;
-		toDate?: string;
-	} = {}): EconomicEvent[] {
-		const { includeProvided = true, includeReceived = true, actionId, resourceId, fromDate, toDate } = options;
-
-		return events.filter(event => {
-			// Agent filter
-			const isProvider = includeProvided && event.provider?.id === agentId;
-			const isReceiver = includeReceived && event.receiver?.id === agentId;
-
-			if (!isProvider && !isReceiver) {
-				return false;
-			}
-
-			// Action filter
-			if (actionId && event.action?.id !== actionId) {
-				return false;
-			}
-
-			// Resource filter
-			if (resourceId && event.resourceInventoriedAs?.id !== resourceId) {
-				return false;
-			}
-
-			// Date filters
-			const eventDate = event.hasPointInTime || event.hasBeginning;
-			if (fromDate && eventDate && eventDate < fromDate) {
-				return false;
-			}
-			if (toDate && eventDate && eventDate > toDate) {
-				return false;
-			}
-
-			return true;
-		});
-	}
-
-	/**
-	 * Gets economic event statistics for an agent
+	 * Calculates statistics for an agent's events.
 	 */
 	function getEventStatsByAgent(agentId: string) {
 		const agentEvents = getEventsByAgent(agentId);
+		const provided = agentEvents.filter((e) => e.provider?.id === agentId).length;
+		const received = agentEvents.filter((e) => e.receiver?.id === agentId).length;
 
 		return {
 			total: agentEvents.length,
-			provided: agentEvents.filter(e => e.provider?.id === agentId).length,
-			received: agentEvents.filter(e => e.receiver?.id === agentId).length,
-			byAction: agentEvents.reduce((acc, event) => {
-				const actionId = event.action?.id || 'unknown';
-				acc[actionId] = (acc[actionId] || 0) + 1;
-				return acc;
-			}, {} as Record<string, number>),
-			byResource: agentEvents.reduce((acc, event) => {
-				const resourceId = event.resourceInventoriedAs?.id || 'unknown';
-				acc[resourceId] = (acc[resourceId] || 0) + 1;
-				return acc;
-			}, {} as Record<string, number>)
+			provided,
+			received
 		};
 	}
 
@@ -429,7 +396,7 @@ function createEconomicEventsStore(): EconomicEventsStore {
 	 * Gets events with a specific action
 	 */
 	function getEventsByAction(actionId: string): EconomicEvent[] {
-		return events.filter(event => event.action.id === actionId);
+		return events.filter((event) => event.action.id === actionId);
 	}
 
 	return {
@@ -452,9 +419,8 @@ function createEconomicEventsStore(): EconomicEventsStore {
 		validateEventData,
 		getEventsByResource,
 		getEventsByAgent,
-		getEventsByAgentWithFilter,
-		getEventStatsByAgent,
-		getEventsByAction
+		getEventsByAction,
+		getEventStatsByAgent
 	};
 }
 

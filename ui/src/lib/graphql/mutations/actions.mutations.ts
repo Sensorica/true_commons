@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client/core';
 
 export const CREATE_ACTION_MUTATION = gql`
-	mutation CreateAction($action: ActionCreateParams!) {
-		createAction(action: $action) {
+	mutation CreateAction($id: String!, $label: String!, $resourceEffect: String!) {
+		createAction(id: $id, label: $label, resourceEffect: $resourceEffect) {
 			action {
 				id
 				label
@@ -14,8 +14,8 @@ export const CREATE_ACTION_MUTATION = gql`
 `;
 
 export const UPDATE_ACTION_MUTATION = gql`
-	mutation UpdateAction($id: ID!, $action: ActionUpdateParams!) {
-		updateAction(id: $id, action: $action) {
+	mutation UpdateAction($id: ID!, $label: String!, $resourceEffect: String!) {
+		updateAction(id: $id, label: $label, resourceEffect: $resourceEffect) {
 			action {
 				id
 				label
@@ -28,6 +28,8 @@ export const UPDATE_ACTION_MUTATION = gql`
 
 export const DELETE_ACTION_MUTATION = gql`
 	mutation DeleteAction($id: ID!) {
-		deleteAction(id: $id)
+		deleteAction(id: $id) {
+			id
+		}
 	}
-`; 
+`;

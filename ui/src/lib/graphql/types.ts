@@ -193,9 +193,11 @@ export interface EconomicResource {
 	currentLocation?: string;
 	primaryAccountable?: Agent;
 	custodian?: Agent;
+	providedBy?: Agent;
 	conformsTo?: ResourceSpecification;
 	accountingQuantity?: Measure;
 	onhandQuantity?: Measure;
+	currentQuantity?: Measure;
 	unitOfEffort?: Unit;
 	// True Commons specific fields
 	tags?: string[];
