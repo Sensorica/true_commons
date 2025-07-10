@@ -6,52 +6,52 @@ import type { UnitCreateParams } from '../graphql/types';
  */
 export const DEFAULT_UNITS: UnitCreateParams[] = [
 	{
-		id: 'one',
+		omUnitIdentifier: 'one',
 		label: 'Each',
 		symbol: 'ea'
 	},
 	{
-		id: 'hour',
+		omUnitIdentifier: 'hour',
 		label: 'Hour',
 		symbol: 'h'
 	},
 	{
-		id: 'kilogram',
+		omUnitIdentifier: 'kilogram',
 		label: 'Kilogram',
 		symbol: 'kg'
 	},
 	{
-		id: 'meter',
+		omUnitIdentifier: 'meter',
 		label: 'Meter',
 		symbol: 'm'
 	},
 	{
-		id: 'piece',
+		omUnitIdentifier: 'piece',
 		label: 'Piece',
 		symbol: 'pc'
 	},
 	{
-		id: 'minute',
+		omUnitIdentifier: 'minute',
 		label: 'Minute',
 		symbol: 'min'
 	},
 	{
-		id: 'second',
+		omUnitIdentifier: 'second',
 		label: 'Second',
 		symbol: 's'
 	},
 	{
-		id: 'liter',
+		omUnitIdentifier: 'liter',
 		label: 'Liter',
 		symbol: 'L'
 	},
 	{
-		id: 'gram',
+		omUnitIdentifier: 'gram',
 		label: 'Gram',
 		symbol: 'g'
 	},
 	{
-		id: 'day',
+		omUnitIdentifier: 'day',
 		label: 'Day',
 		symbol: 'd'
 	}
@@ -79,5 +79,5 @@ export const UNIT_CATEGORIES = {
  */
 export function getUnitsByCategory(category: keyof typeof UNIT_CATEGORIES): UnitCreateParams[] {
 	const unitIds = UNIT_CATEGORIES[category] as readonly string[];
-	return DEFAULT_UNITS.filter((unit) => unitIds.includes(unit.id));
+	return DEFAULT_UNITS.filter((unit) => unitIds.includes(unit.omUnitIdentifier));
 }

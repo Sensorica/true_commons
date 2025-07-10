@@ -150,19 +150,19 @@ function createUnitsStore(): UnitsStore {
 					throw new Error('Apollo client is not available');
 				}
 
-				console.log('Creating unit with data:', unitData);
+				console.log('Creating unit:', unitData);
 
 				try {
 					const result = await hreaService.apolloClient.mutate({
 						mutation: CREATE_UNIT_MUTATION,
 						variables: {
-							omUnitIdentifier: unitData.id,
-							label: unitData.label,
-							symbol: unitData.symbol
+							unit: {
+								omUnitIdentifier: unitData.omUnitIdentifier,
+								label: unitData.label,
+								symbol: unitData.symbol
+							}
 						}
 					});
-
-					console.log('Create unit mutation result:', result);
 
 					// Handle different possible response structures
 					let newUnit: Unit | null = null;
@@ -179,25 +179,12 @@ function createUnitsStore(): UnitsStore {
 						throw new Error('Failed to create unit - no data returned');
 					}
 
-					units = [...units, newUnit];
-					console.log('Created new unit:', newUnit.id);
-
+					// Add to local store
+					units.push(newUnit);
+					console.log('✅ Created unit:', newUnit.id);
 					return newUnit;
 				} catch (mutationError) {
-					console.error('Unit creation mutation failed:', mutationError);
-
-					// Check if it's a GraphQL error
-					if (mutationError instanceof Error) {
-						if (
-							mutationError.message.includes('Cannot query field "createUnit"') ||
-							mutationError.message.includes('Unknown argument "unit"')
-						) {
-							throw new Error(
-								'Unit creation mutation not supported by the current schema. Please check the GraphQL schema.'
-							);
-						}
-					}
-
+					console.error('❌ Unit creation failed:', mutationError);
 					throw mutationError;
 				}
 			},
@@ -225,9 +212,11 @@ function createUnitsStore(): UnitsStore {
 						mutation: UPDATE_UNIT_MUTATION,
 						variables: {
 							id,
-							omUnitIdentifier: id,
-							label: unitData.label,
-							symbol: unitData.symbol
+							unit: {
+								omUnitIdentifier: id,
+								label: unitData.label,
+								symbol: unitData.symbol
+							}
 						}
 					});
 
@@ -303,20 +292,14 @@ function createUnitsStore(): UnitsStore {
 	 */
 	async function initializeDefaultUnits(): Promise<void> {
 		console.log('🔄 Initializing default units...');
-		console.log('📋 DEFAULT_UNITS configuration:', DEFAULT_UNITS);
 
 		try {
 			// First fetch existing units to check what we already have
-			console.log('📊 Fetching existing units...');
 			await fetchAllUnits();
-
 			const existingUnitIds = new Set(units.map((u) => u.id));
 
-			console.log(`📊 Found ${units.length} existing units:`, Array.from(existingUnitIds));
-			console.log(
-				'🎯 Required units from DEFAULT_UNITS:',
-				DEFAULT_UNITS.map((u) => u.id)
-			);
+			console.log(`📊 Found ${units.length} existing units`);
+			console.log('🎯 Required units:', DEFAULT_UNITS);
 
 			let created = 0;
 			let skipped = 0;
@@ -324,22 +307,19 @@ function createUnitsStore(): UnitsStore {
 
 			// Create only the units that don't exist yet
 			for (const defaultUnit of DEFAULT_UNITS) {
-				if (!existingUnitIds.has(defaultUnit.id)) {
+				if (!existingUnitIds.has(defaultUnit.omUnitIdentifier)) {
 					try {
-						console.log(`⚙️ Creating unit: ${defaultUnit.label} (${defaultUnit.id})`);
-						console.log('📝 Unit data:', defaultUnit);
+						console.log(`⚙️ Creating unit: ${defaultUnit.label}`);
 						await createUnit(defaultUnit);
 						created++;
-						console.log(`✅ Created default unit: ${defaultUnit.label}`);
 					} catch (err) {
 						failed++;
-						console.warn(`⚠️ Failed to create default unit ${defaultUnit.label}:`, err);
+						console.warn(`⚠️ Failed to create unit ${defaultUnit.label}:`, err);
 
 						// If the mutation isn't supported, throw a clear error
 						if (err instanceof Error && err.message.includes('mutation not supported')) {
-							console.error('💥 UNIT MUTATION NOT SUPPORTED - This is the core issue!');
 							throw new Error(
-								`Unit creation is not supported by the current hREA schema. This might be because:\n1. The hREA schema doesn't include unit mutations\n2. Units might be predefined in the system\n3. There might be a different API for managing units\n\nOriginal error: ${err.message}`
+								`Unit creation not supported by hREA schema. Original error: ${err.message}`
 							);
 						}
 
@@ -350,30 +330,21 @@ function createUnitsStore(): UnitsStore {
 								err.message.includes('Unknown argument') ||
 								err.message.includes('Field "createUnit" must not have a selection'))
 						) {
-							console.error('🔧 GraphQL Schema Issue Details:', {
-								message: err.message,
-								unitData: defaultUnit,
-								errorType: 'GraphQL Schema Mismatch'
-							});
-							throw new Error(
-								`GraphQL schema doesn't support unit creation mutations. Schema error: ${err.message}`
-							);
+							throw new Error(`GraphQL schema error: ${err.message}`);
 						}
 
 						// Continue with other units for other types of errors
-						console.warn(`⏭️ Continuing with other units despite error with ${defaultUnit.label}`);
+						console.warn(`⏭️ Continuing with other units despite error`);
 					}
 				} else {
 					skipped++;
-					console.log(`⏭️ Unit ${defaultUnit.label} already exists, skipping...`);
+					console.log(`⏭️ Unit ${defaultUnit.label} already exists`);
 				}
 			}
 
-			console.log(`✅ Default units initialization completed:`);
-			console.log(`   📦 Created: ${created} units`);
-			console.log(`   ⏭️ Skipped: ${skipped} units (already existed)`);
-			console.log(`   ❌ Failed: ${failed} units`);
-			console.log(`   📊 Total: ${units.length} units available`);
+			console.log(
+				`✅ Units initialization completed: ${created} created, ${skipped} skipped, ${failed} failed`
+			);
 
 			if (failed > 0 && created === 0) {
 				console.error('💥 NO UNITS WERE CREATED - this will cause application issues');

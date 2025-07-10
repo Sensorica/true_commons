@@ -362,14 +362,17 @@ export interface DeleteUnitResponse {
 
 // Units Input Types
 export interface UnitCreateParams {
-	id: string;
+	omUnitIdentifier: string;
 	label: string;
 	symbol: string;
+	classifiedAs?: string[];
 }
 
 export interface UnitUpdateParams {
+	omUnitIdentifier?: string;
 	label?: string;
 	symbol?: string;
+	classifiedAs?: string[];
 }
 
 // Actions Response Types

@@ -100,41 +100,36 @@ function createFoundationService(): FoundationService {
 				throw new Error('Apollo client is not available');
 			}
 
-			// Test basic queries first
+			// Test basic queries
 			try {
 				await unitsStore.fetchAllUnits();
 				capabilities.availableQueries.push('units');
 				console.log('✅ Units query supported');
-			} catch (err) {
-				console.log('❌ Units query not supported:', err);
+			} catch {
+				console.log('❌ Units query not supported');
 			}
 
 			try {
 				await actionsStore.fetchAllActions();
 				capabilities.availableQueries.push('actions');
 				console.log('✅ Actions query supported');
-			} catch (err) {
-				console.log('❌ Actions query not supported:', err);
+			} catch {
+				console.log('❌ Actions query not supported');
 			}
 
 			try {
 				await resourcesStore.fetchAllResourceSpecifications();
 				capabilities.availableQueries.push('resourceSpecifications');
 				console.log('✅ Resource specifications query supported');
-			} catch (err) {
-				console.log('❌ Resource specifications query not supported:', err);
+			} catch {
+				console.log('❌ Resource specifications query not supported');
 			}
 
-			// Test mutations by attempting to create test entities (we'll catch and analyze errors)
-			// Note: We won't actually create anything, just test if the mutations exist
-
-			console.log('🧪 Testing mutation capabilities...');
-
-			// Test unit mutations by attempting to create a test unit
+			// Test unit mutations
+			console.log('🧪 Testing unit mutation capabilities...');
 			try {
-				// Try to create a test unit (we'll catch the error to see what type it is)
 				await unitsStore.createUnit({
-					id: 'test-unit-schema-check',
+					omUnitIdentifier: 'test-unit-schema-check',
 					label: 'Test Unit',
 					symbol: 'TEST'
 				});
@@ -142,31 +137,31 @@ function createFoundationService(): FoundationService {
 				capabilities.availableMutations.push('createUnit');
 				console.log('✅ Unit mutations supported');
 
-				// Clean up the test unit if it was actually created
+				// Clean up test unit
 				try {
 					await unitsStore.deleteUnit('test-unit-schema-check');
 				} catch {
 					// Ignore cleanup errors
 				}
 			} catch (err) {
-				console.log('🔍 Testing unit mutation support:', err);
+				console.log('❌ Unit mutations failed:', err);
 				if (err instanceof Error) {
 					if (
 						err.message.includes('Cannot query field "createUnit"') ||
 						err.message.includes('Unknown argument "unit"') ||
 						err.message.includes('mutation not supported')
 					) {
-						console.log('❌ Unit mutations not supported by schema');
+						console.log('🔍 Unit mutations not supported by schema');
 						capabilities.supportsUnitMutations = false;
 					} else {
 						console.log('🤔 Unit mutations might be supported but failed for other reasons');
-						capabilities.supportsUnitMutations = true; // Assume supported but failed for other reasons
+						capabilities.supportsUnitMutations = true;
 						capabilities.availableMutations.push('createUnit');
 					}
 				}
 			}
 
-			// Determine schema type based on available capabilities
+			// Determine schema type
 			if (capabilities.availableQueries.length >= 3) {
 				if (capabilities.supportsUnitMutations || capabilities.supportsActionMutations) {
 					capabilities.schemaType = 'full-hrea';
@@ -175,7 +170,7 @@ function createFoundationService(): FoundationService {
 				}
 			}
 
-			console.log('📊 Schema capabilities test completed:', capabilities);
+			console.log('📊 Schema capabilities:', capabilities);
 			return capabilities;
 		} catch (error) {
 			console.error('❌ Failed to test schema capabilities:', error);
@@ -197,21 +192,21 @@ function createFoundationService(): FoundationService {
 				resourcesStore.fetchAllResourceSpecifications()
 			]);
 
-			// Check for required units - defensive programming
+			// Check for required units
 			const availableUnits = Array.isArray(unitsStore.units)
 				? unitsStore.units.map((u) => u.id)
 				: [];
 			const missingUnits = REQUIRED_UNITS.filter((id) => !availableUnits.includes(id));
 			const unitsReady = missingUnits.length === 0;
 
-			// Check for required actions - defensive programming
+			// Check for required actions
 			const availableActions = Array.isArray(actionsStore.actions)
 				? actionsStore.actions.map((a) => a.id)
 				: [];
 			const missingActions = REQUIRED_ACTIONS.filter((id) => !availableActions.includes(id));
 			const actionsReady = missingActions.length === 0;
 
-			// Check for basic resource specifications - defensive programming
+			// Check for basic resource specifications
 			const availableResourceSpecs = Array.isArray(resourcesStore.resourceSpecifications)
 				? resourcesStore.resourceSpecifications.map((rs) => rs.id)
 				: [];
@@ -234,24 +229,21 @@ function createFoundationService(): FoundationService {
 				}
 			};
 
-			console.log('📊 Foundation status:', status);
+			console.log('📊 Foundation status:', {
+				unitsReady: `${unitsReady} (${missingUnits.length} missing)`,
+				actionsReady: `${actionsReady} (${missingActions.length} missing)`,
+				resourceSpecsReady: `${resourceSpecificationsReady} (${missingResourceSpecs.length} missing)`
+			});
 
-			// Provide helpful diagnostics
 			if (!allReady) {
-				console.log('🔍 Foundation diagnostics:');
-				if (!unitsReady) {
-					console.log(`   📏 Missing units: ${missingUnits.join(', ')}`);
-					console.log(`   📊 Available units: ${availableUnits.join(', ') || 'none'}`);
+				if (missingUnits.length > 0) {
+					console.log(`📏 Missing units: ${missingUnits.join(', ')}`);
 				}
-				if (!actionsReady) {
-					console.log(`   ⚡ Missing actions: ${missingActions.join(', ')}`);
-					console.log(`   📊 Available actions: ${availableActions.join(', ') || 'none'}`);
+				if (missingActions.length > 0) {
+					console.log(`⚡ Missing actions: ${missingActions.join(', ')}`);
 				}
-				if (!resourceSpecificationsReady) {
-					console.log(`   📦 Missing resource specs: ${missingResourceSpecs.join(', ')}`);
-					console.log(
-						`   📊 Available resource specs: ${availableResourceSpecs.join(', ') || 'none'}`
-					);
+				if (missingResourceSpecs.length > 0) {
+					console.log(`📦 Missing resource specs: ${missingResourceSpecs.join(', ')}`);
 				}
 			}
 
@@ -286,17 +278,14 @@ function createFoundationService(): FoundationService {
 				return true;
 			}
 
-			console.log('🔧 Foundation data incomplete, attempting to initialize missing components...');
+			console.log('🔧 Foundation data incomplete, initializing missing components...');
 
 			// Test schema capabilities first
 			let capabilities: SchemaCapabilities;
 			try {
 				capabilities = await testSchemaCapabilities();
-			} catch (capError) {
-				console.warn(
-					'⚠️ Could not test schema capabilities, proceeding with best effort:',
-					capError
-				);
+			} catch {
+				console.warn('⚠️ Could not test schema capabilities, proceeding with best effort');
 				capabilities = {
 					supportsUnitMutations: false,
 					supportsActionMutations: false,
@@ -317,19 +306,11 @@ function createFoundationService(): FoundationService {
 					console.error('❌ Units initialization failed:', unitError);
 
 					if (unitError instanceof Error && unitError.message.includes('mutation not supported')) {
-						console.warn(
-							'🔍 Unit mutations not supported by schema. This might be expected if units are predefined.'
-						);
-						// For read-only schemas, we may need to work with existing units only
+						console.warn('🔍 Unit mutations not supported by schema');
 						if (capabilities.schemaType === 'read-only') {
 							console.log('📖 Detected read-only schema, proceeding with available units');
 						} else {
 							console.error('💥 UNITS CREATION FAILED - this will prevent proper functionality');
-							console.error('🔍 Unit error details:', {
-								message: unitError.message,
-								error: unitError
-							});
-							// Don't throw here - let's see if we can work with existing units
 							console.warn(
 								'⚠️ Continuing without unit creation, application may have limited functionality'
 							);
@@ -354,9 +335,7 @@ function createFoundationService(): FoundationService {
 						actionError instanceof Error &&
 						actionError.message.includes('mutation not supported')
 					) {
-						console.warn(
-							'🔍 Action mutations not supported by schema. This might be expected if actions are predefined.'
-						);
+						console.warn('🔍 Action mutations not supported by schema');
 						if (capabilities.schemaType === 'read-only') {
 							console.log('📖 Detected read-only schema, proceeding with available actions');
 						} else {
@@ -385,7 +364,7 @@ function createFoundationService(): FoundationService {
 						resourceError instanceof Error &&
 						resourceError.message.includes('mutation not supported')
 					) {
-						console.warn('🔍 Resource specification mutations not supported by schema.');
+						console.warn('🔍 Resource specification mutations not supported by schema');
 						if (capabilities.schemaType === 'read-only') {
 							console.log(
 								'📖 Detected read-only schema, proceeding with available resource specifications'
@@ -409,15 +388,9 @@ function createFoundationService(): FoundationService {
 				console.log('🎉 Foundation initialization completed successfully');
 				return true;
 			} else {
-				console.warn('⚠️ Foundation initialization incomplete. Available components:');
+				console.warn('⚠️ Foundation initialization incomplete');
 				console.log(
-					`   📏 Units: ${finalStatus.unitsReady ? '✅' : '❌'} (${finalStatus.missing.units.length} missing)`
-				);
-				console.log(
-					`   ⚡ Actions: ${finalStatus.actionsReady ? '✅' : '❌'} (${finalStatus.missing.actions.length} missing)`
-				);
-				console.log(
-					`   📦 Resource Specs: ${finalStatus.resourceSpecificationsReady ? '✅' : '❌'} (${finalStatus.missing.resourceSpecifications.length} missing)`
+					`Units: ${finalStatus.unitsReady ? '✅' : '❌'}, Actions: ${finalStatus.actionsReady ? '✅' : '❌'}, Resource Specs: ${finalStatus.resourceSpecificationsReady ? '✅' : '❌'}`
 				);
 
 				// For read-only schemas, this might be acceptable
@@ -425,11 +398,9 @@ function createFoundationService(): FoundationService {
 					console.log(
 						'📖 Read-only schema detected - working with available foundation components'
 					);
-					return true; // Accept partial initialization for read-only schemas
+					return true;
 				} else {
-					throw new Error(
-						'Foundation initialization incomplete after setup. Enable detailed logging to see what failed.'
-					);
+					throw new Error('Foundation initialization incomplete after setup');
 				}
 			}
 		} catch (error) {
