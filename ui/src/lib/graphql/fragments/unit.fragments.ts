@@ -8,6 +8,7 @@ export const UNIT_FIELDS = gql`
 		id
 		label
 		symbol
+		classifiedAs
 	}
 `;
 
@@ -19,5 +20,6 @@ export const UNIT_FIELDS_EXTENDED = gql`
 		id
 		label
 		symbol
+		classifiedAs
 	}
 `;

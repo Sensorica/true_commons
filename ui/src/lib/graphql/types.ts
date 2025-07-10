@@ -245,6 +245,7 @@ export interface Unit {
 	id: string;
 	label: string;
 	symbol: string;
+	classifiedAs?: string[];
 }
 
 export interface ResourceSpecification {

@@ -85,14 +85,42 @@
 		try {
 			const result = await getSchema();
 			console.log('✅ Schema introspection completed successfully');
-			alert(
-				`Schema introspection completed! Found ${result.mutations.length} mutations total, ${result.unitMutations.length} unit-related mutations. Check the browser console for detailed output.`
-			);
+
+			// Focus on Create Unit Mutation results
+			if (result.createUnitInfo.isSupported) {
+				const paramsCount = result.createUnitInfo.unitCreateParamsFields.length;
+				const responseCount = result.createUnitInfo.unitFieldsInResponse.length;
+				alert(
+					`✅ Create Unit Mutation Analysis Complete!\n\n` +
+						`🎯 createUnit mutation: SUPPORTED\n` +
+						`🔧 UnitCreateParams fields: ${paramsCount} found\n` +
+						`📤 Response Unit fields: ${responseCount} found\n\n` +
+						`📊 Schema Overview:\n` +
+						`• Total mutations: ${result.mutations.length}\n` +
+						`• Unit-related mutations: ${result.unitMutations.length}\n\n` +
+						`Check the browser console for detailed schema analysis including field types, examples, and TypeScript interfaces.`
+				);
+			} else {
+				alert(
+					`❌ Create Unit Mutation Analysis Complete\n\n` +
+						`🎯 createUnit mutation: NOT SUPPORTED\n\n` +
+						`📊 Schema Overview:\n` +
+						`• Total mutations: ${result.mutations.length}\n` +
+						`• Unit-related mutations: ${result.unitMutations.length}\n\n` +
+						`The current GraphQL schema does not support the createUnit mutation. Check the browser console for full schema details.`
+				);
+			}
 		} catch (error) {
 			console.error('❌ Schema introspection failed:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 			alert(
-				`Schema introspection failed: ${errorMessage}\n\nCheck the browser console for details.`
+				`❌ Create Unit Mutation Analysis Failed\n\n` +
+					`Error: ${errorMessage}\n\n` +
+					`This could indicate:\n` +
+					`• GraphQL service is not running\n` +
+					`• hREA service initialization failed\n` +
+					`• Network connectivity issues\n\n` +
+					`Check the browser console for detailed error information.`
 			);
 		} finally {
 			introspectingSchema = false;
@@ -623,7 +651,7 @@
 							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 						></path>
 					</svg>
-					Introspecting...
+					Analyzing...
 				{:else}
 					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -633,7 +661,7 @@
 							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
 						></path>
 					</svg>
-					Get GraphQL Schema
+					Analyze Create Unit Mutation
 				{/if}
 			</button>
 		</div>
