@@ -7,6 +7,8 @@
 	import economicEventsStore from '$lib/stores/economic-events.store.svelte';
 	import processesStore from '$lib/stores/processes.store.svelte';
 	import processSpecificationsStore from '$lib/stores/process-specifications.store.svelte';
+	import commitmentsStore from '$lib/stores/commitments.store.svelte';
+	import intentsStore from '$lib/stores/intents.store.svelte';
 	import { getSchema } from '$lib/utils/get-schema';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -36,6 +38,29 @@
 		activity: {
 			events: economicEventsStore.events.length,
 			recentEvents: economicEventsStore.events.slice(0, 5)
+		},
+		commitments: {
+			total: commitmentsStore.commitments.length,
+			active: commitmentsStore.commitments.filter(
+				(c) => !c.fulfilledBy || c.fulfilledBy.length === 0
+			).length,
+			fulfilled: commitmentsStore.commitments.filter(
+				(c) => c.fulfilledBy && c.fulfilledBy.length > 0
+			).length,
+			overdue: commitmentsStore.commitments.filter(
+				(c) =>
+					c.due && new Date(c.due) < new Date() && (!c.fulfilledBy || c.fulfilledBy.length === 0)
+			).length
+		},
+		intents: {
+			total: intentsStore.intents.length,
+			open: intentsStore.intents.filter((i) => !i.satisfiedBy || i.satisfiedBy.length === 0).length,
+			satisfied: intentsStore.intents.filter((i) => i.satisfiedBy && i.satisfiedBy.length > 0)
+				.length,
+			expired: intentsStore.intents.filter(
+				(i) =>
+					i.due && new Date(i.due) < new Date() && (!i.satisfiedBy || i.satisfiedBy.length === 0)
+			).length
 		},
 		foundation: {
 			isReady: foundationStatus?.allReady || false,
@@ -74,6 +99,14 @@
 
 	function goToEvents() {
 		goto('/events');
+	}
+
+	function goToCommitments() {
+		goto('/commitments');
+	}
+
+	function goToIntents() {
+		goto('/intents');
 	}
 
 	async function introspectGraphQLSchema() {
@@ -187,7 +220,9 @@
 				{
 					name: 'processSpecifications',
 					fn: () => processSpecificationsStore.fetchAllProcessSpecifications()
-				}
+				},
+				{ name: 'commitments', fn: () => commitmentsStore.fetchAllCommitments() },
+				{ name: 'intents', fn: () => intentsStore.fetchAllIntents() }
 			];
 
 			for (const store of storeReloads) {
@@ -247,6 +282,8 @@
 		agentsStore.fetchAllAgents();
 		resourcesStore.fetchAllResources();
 		economicEventsStore.fetchAllEvents();
+		commitmentsStore.fetchAllCommitments();
+		intentsStore.fetchAllIntents();
 	});
 </script>
 
@@ -426,6 +463,82 @@
 					class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
 				>
 					View all events →
+				</button>
+			</div>
+		</div>
+
+		<!-- Intents Overview -->
+		<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+			<div class="flex items-center">
+				<div class="flex-shrink-0">
+					<svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 10V3L4 14h7v7l9-11h-7z"
+						></path>
+					</svg>
+				</div>
+				<div class="ml-5 w-0 flex-1">
+					<dl>
+						<dt class="truncate text-sm font-medium text-gray-500 dark:text-gray-400">Intents</dt>
+						<dd class="text-lg font-medium text-gray-900 dark:text-white">
+							{stats.intents.total}
+						</dd>
+					</dl>
+				</div>
+			</div>
+			<div class="mt-4">
+				<div class="flex items-center text-sm">
+					<span class="text-gray-600 dark:text-gray-400">
+						{stats.intents.open} open intents
+					</span>
+				</div>
+				<button
+					onclick={goToIntents}
+					class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+				>
+					View all intents →
+				</button>
+			</div>
+		</div>
+
+		<!-- Commitments Overview -->
+		<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+			<div class="flex items-center">
+				<div class="flex-shrink-0">
+					<svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+						></path>
+					</svg>
+				</div>
+				<div class="ml-5 w-0 flex-1">
+					<dl>
+						<dt class="truncate text-sm font-medium text-gray-500 dark:text-gray-400">
+							Commitments
+						</dt>
+						<dd class="text-lg font-medium text-gray-900 dark:text-white">
+							{stats.commitments.total}
+						</dd>
+					</dl>
+				</div>
+			</div>
+			<div class="mt-4">
+				<div class="flex items-center text-sm">
+					<span class="text-gray-600 dark:text-gray-400">
+						{stats.commitments.active} active commitments
+					</span>
+				</div>
+				<button
+					onclick={goToCommitments}
+					class="mt-3 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+				>
+					View all commitments →
 				</button>
 			</div>
 		</div>

@@ -569,3 +569,187 @@ export interface Plan {
 	name: string;
 	note?: string;
 }
+
+// Commitment and Intent types for Phase 4 implementation
+export interface Commitment {
+	id: string;
+	action: Action;
+	provider?: Agent;
+	receiver?: Agent;
+	resourceConformsTo?: ResourceSpecification;
+	resourceInventoriedAs?: EconomicResource;
+	resourceQuantity?: Measure;
+	effortQuantity?: Measure;
+	hasBeginning?: string;
+	hasEnd?: string;
+	due?: string;
+	note?: string;
+	inScopeOf?: Agent;
+	// Process relationships
+	inputOf?: Process;
+	outputOf?: Process;
+	// ValueFlows relationships
+	satisfies?: Intent[];
+	fulfilledBy?: EconomicEvent[];
+	// Planning relationships
+	plannedWithin?: Plan;
+}
+
+export interface Intent {
+	id: string;
+	action: Action;
+	provider?: Agent;
+	receiver?: Agent;
+	resourceConformsTo?: ResourceSpecification;
+	resourceInventoriedAs?: EconomicResource;
+	resourceQuantity?: Measure;
+	effortQuantity?: Measure;
+	hasBeginning?: string;
+	hasEnd?: string;
+	due?: string;
+	note?: string;
+	inScopeOf?: Agent;
+	// Process relationships
+	inputOf?: Process;
+	outputOf?: Process;
+	// ValueFlows relationships
+	satisfiedBy?: Commitment[];
+	// Planning relationships
+	plannedWithin?: Plan;
+}
+
+// Create/Update parameter interfaces for Commitments
+export interface CommitmentCreateParams {
+	action: string; // Action ID
+	provider?: string; // Agent ID
+	receiver?: string; // Agent ID
+	resourceConformsTo?: string; // ResourceSpecification ID
+	resourceInventoriedAs?: string; // EconomicResource ID
+	resourceQuantity?: MeasureCreateParams;
+	effortQuantity?: MeasureCreateParams;
+	hasBeginning?: string;
+	hasEnd?: string;
+	due?: string;
+	note?: string;
+	inScopeOf?: string; // Agent ID
+	// Process relationships
+	inputOf?: string; // Process ID
+	outputOf?: string; // Process ID
+	// ValueFlows relationships
+	satisfies?: string[]; // Intent IDs
+	// Planning relationships
+	plannedWithin?: string; // Plan ID
+}
+
+export interface CommitmentUpdateParams {
+	action?: string; // Action ID
+	provider?: string; // Agent ID
+	receiver?: string; // Agent ID
+	resourceConformsTo?: string; // ResourceSpecification ID
+	resourceInventoriedAs?: string; // EconomicResource ID
+	resourceQuantity?: MeasureCreateParams;
+	effortQuantity?: MeasureCreateParams;
+	hasBeginning?: string;
+	hasEnd?: string;
+	due?: string;
+	note?: string;
+	inScopeOf?: string; // Agent ID
+	// Process relationships
+	inputOf?: string; // Process ID
+	outputOf?: string; // Process ID
+	// ValueFlows relationships
+	satisfies?: string[]; // Intent IDs
+	// Planning relationships
+	plannedWithin?: string; // Plan ID
+}
+
+// Create/Update parameter interfaces for Intents
+export interface IntentCreateParams {
+	action: string; // Action ID
+	provider?: string; // Agent ID
+	receiver?: string; // Agent ID
+	resourceConformsTo?: string; // ResourceSpecification ID
+	resourceInventoriedAs?: string; // EconomicResource ID
+	resourceQuantity?: MeasureCreateParams;
+	effortQuantity?: MeasureCreateParams;
+	hasBeginning?: string;
+	hasEnd?: string;
+	due?: string;
+	note?: string;
+	inScopeOf?: string; // Agent ID
+	// Process relationships
+	inputOf?: string; // Process ID
+	outputOf?: string; // Process ID
+	// Planning relationships
+	plannedWithin?: string; // Plan ID
+}
+
+export interface IntentUpdateParams {
+	action?: string; // Action ID
+	provider?: string; // Agent ID
+	receiver?: string; // Agent ID
+	resourceConformsTo?: string; // ResourceSpecification ID
+	resourceInventoriedAs?: string; // EconomicResource ID
+	resourceQuantity?: MeasureCreateParams;
+	effortQuantity?: MeasureCreateParams;
+	hasBeginning?: string;
+	hasEnd?: string;
+	due?: string;
+	note?: string;
+	inScopeOf?: string; // Agent ID
+	// Process relationships
+	inputOf?: string; // Process ID
+	outputOf?: string; // Process ID
+	// Planning relationships
+	plannedWithin?: string; // Plan ID
+}
+
+// Response interfaces for Commitments
+export interface GetCommitmentsResponse {
+	commitments: {
+		edges: {
+			node: Commitment;
+		}[];
+	};
+}
+
+export interface CreateCommitmentResponse {
+	createCommitment: {
+		commitment: Commitment;
+	};
+}
+
+export interface UpdateCommitmentResponse {
+	updateCommitment: {
+		commitment: Commitment;
+	};
+}
+
+export interface DeleteCommitmentResponse {
+	deleteCommitment: boolean;
+}
+
+// Response interfaces for Intents
+export interface GetIntentsResponse {
+	intents: {
+		edges: {
+			node: Intent;
+		}[];
+	};
+}
+
+export interface CreateIntentResponse {
+	createIntent: {
+		intent: Intent;
+	};
+}
+
+export interface UpdateIntentResponse {
+	updateIntent: {
+		intent: Intent;
+	};
+}
+
+export interface DeleteIntentResponse {
+	deleteIntent: boolean;
+}

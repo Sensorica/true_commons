@@ -5,3 +5,5 @@ export * from './resource-specifications.mutations';
 export * from './units.mutations';
 export * from './processes.mutations';
 export * from './actions.mutations';
+export * from './commitments.mutations';
+export * from './intents.mutations';
