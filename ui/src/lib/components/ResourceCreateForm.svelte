@@ -148,8 +148,21 @@
 				throw new Error('Selected resource specification not found');
 			}
 
+			// Make sure we have units loaded before trying to resolve them
+			if (unitsStore.units.length === 0) {
+				try {
+					await unitsStore.fetchAllUnits();
+				} catch (fetchErr) {
+					console.warn('Unable to load units before resource creation:', fetchErr);
+				}
+			}
+
 			// Get default unit, fallback to a safe default
-			const defaultUnit = selectedSpec.defaultUnitOfResource || unitsStore.getUnitById('one');
+			const defaultUnit =
+				selectedSpec.defaultUnitOfResource ||
+				unitsStore.getUnitById('one') ||
+				unitsStore.units[0] ||
+				null;
 			if (!defaultUnit) {
 				throw new Error('No valid unit found for resource creation');
 			}

@@ -17,6 +17,7 @@ import {
 	UPDATE_RESOURCE_SPECIFICATION,
 	DELETE_RESOURCE_SPECIFICATION
 } from '../graphql/mutations';
+import unitsStore from './units.store.svelte';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -87,14 +88,31 @@ const createResourceCreationEvent = (
 	resourceSpecId: string,
 	resourceData: Partial<EconomicResource>
 ): Record<string, unknown> => {
+	// Try to pick a unit ID from the supplied resourceData (created in the form)
+	let unitId: string | null = null;
+
+	if (resourceData.accountingQuantity && typeof resourceData.accountingQuantity === 'object') {
+		const unitObj = (resourceData.accountingQuantity as { hasUnit?: { id: string } } | undefined)
+			?.hasUnit;
+		if (unitObj && typeof unitObj.id === 'string') {
+			unitId = unitObj.id;
+		}
+	}
+
+	if (!unitId) {
+		// Fallback to default "one" unit if available in store
+		const oneUnit = unitsStore.getUnitById('one');
+		unitId = oneUnit?.id || 'one';
+	}
+
 	return {
 		action: 'produce',
 		provider: agentId,
-		receiver: agentId, // Required field - set to same agent for self-creation
+		receiver: agentId, // self
 		resourceConformsTo: resourceSpecId,
 		resourceQuantity: {
 			hasNumericalValue: 1,
-			hasUnit: 'one' // Must be string ID, not object
+			hasUnit: unitId
 		},
 		hasPointInTime: new Date().toISOString(),
 		note: `Created resource: ${resourceData.name}`
