@@ -149,16 +149,15 @@
 	<div class="form-header">
 		<h2>Create Process</h2>
 		<p class="description">
-			Processes represent activities that transform inputs into outputs. They can group related economic events together as part of workflows.
+			Processes represent activities that transform inputs into outputs. They can group related
+			economic events together as part of workflows.
 		</p>
 	</div>
 
 	{#if !foundationReady}
 		<div class="foundation-warning">
 			<h3>⚠️ Foundation Components Required</h3>
-			<p>
-				Processes require foundation components to be initialized first.
-			</p>
+			<p>Processes require foundation components to be initialized first.</p>
 			<button
 				type="button"
 				class="btn btn-primary"
@@ -230,10 +229,7 @@
 
 				<div class="form-group">
 					<label class="checkbox-label">
-						<input
-							type="checkbox"
-							bind:checked={formData.isFinished}
-						/>
+						<input type="checkbox" bind:checked={formData.isFinished} />
 						Process is finished
 					</label>
 				</div>
@@ -355,7 +351,7 @@
 		color: #333;
 	}
 
-	.checkbox-label input[type="checkbox"] {
+	.checkbox-label input[type='checkbox'] {
 		margin: 0;
 	}
 
@@ -439,9 +435,9 @@
 		.process-form {
 			padding: 1rem;
 		}
-		
+
 		.form-section {
 			padding: 1rem;
 		}
 	}
-</style> 
+</style>

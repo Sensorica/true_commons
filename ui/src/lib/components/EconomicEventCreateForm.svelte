@@ -337,7 +337,10 @@
 				</div>
 
 				<div class="form-note">
-					<p><strong>Note:</strong> An event can be either an input <em>or</em> output to a process, but not both.</p>
+					<p>
+						<strong>Note:</strong> An event can be either an input <em>or</em> output to a process, but
+						not both.
+					</p>
 				</div>
 			</div>
 

@@ -29,13 +29,13 @@ export interface ResourcesStore {
 	readonly error: string | null;
 
 	// Resource methods
-	fetchAllResources(): Promise<void>;
+	fetchAllResources(forceRefetch?: boolean): Promise<void>;
 	createResource(resource: Partial<EconomicResource>): Promise<EconomicResource>;
 	updateResource(id: string, resource: Partial<EconomicResource>): Promise<EconomicResource>;
 	deleteResource(id: string): Promise<void>;
 
 	// Resource Specification methods
-	fetchAllResourceSpecifications(): Promise<void>;
+	fetchAllResourceSpecifications(forceRefetch?: boolean): Promise<void>;
 	createResourceSpecification(spec: Partial<ResourceSpecification>): Promise<ResourceSpecification>;
 	updateResourceSpecification(
 		id: string,
@@ -188,8 +188,13 @@ function createResourcesStore(): ResourcesStore {
 	/**
 	 * Fetches all economic resources from the hREA system.
 	 */
-	async function fetchAllResources(): Promise<void> {
+	async function fetchAllResources(forceRefetch: boolean = false): Promise<void> {
 		if (loading) return;
+
+		// Avoid refetching if we already have data, unless forced
+		if (resources.length > 0 && !forceRefetch) {
+			return;
+		}
 
 		return withLoadingState(
 			async () => {
@@ -203,7 +208,7 @@ function createResourcesStore(): ResourcesStore {
 
 				const result = await hreaService.apolloClient.query<GetEconomicResourcesResponse>({
 					query: GET_ALL_RESOURCES,
-					fetchPolicy: 'cache-first'
+					fetchPolicy: forceRefetch ? 'network-only' : 'cache-first'
 				});
 
 				resources = (result.data.economicResources?.edges || []).map((edge) => edge.node);
@@ -462,8 +467,13 @@ function createResourcesStore(): ResourcesStore {
 	/**
 	 * Fetches all resource specifications from the hREA system.
 	 */
-	async function fetchAllResourceSpecifications(): Promise<void> {
+	async function fetchAllResourceSpecifications(forceRefetch: boolean = false): Promise<void> {
 		if (loading) return;
+
+		// Avoid refetching if we already have data, unless forced
+		if (resourceSpecifications.length > 0 && !forceRefetch) {
+			return;
+		}
 
 		return withLoadingState(
 			async () => {
@@ -478,22 +488,18 @@ function createResourcesStore(): ResourcesStore {
 
 					const result = await hreaService.apolloClient.query<GetResourceSpecificationsResponse>({
 						query: GET_ALL_RESOURCE_SPECIFICATIONS,
-						fetchPolicy: 'cache-first'
+						fetchPolicy: forceRefetch ? 'network-only' : 'cache-first'
 					});
 
-					// Defensive handling of GraphQL query result
-					if (result.data && result.data.resourceSpecifications) {
-						if (result.data.resourceSpecifications.edges) {
-							resourceSpecifications = result.data.resourceSpecifications.edges.map(
-								(edge) => edge.node
-							);
-						} else if (Array.isArray(result.data.resourceSpecifications)) {
-							resourceSpecifications = result.data.resourceSpecifications;
-						} else {
-							resourceSpecifications = [];
-						}
+					if (
+						result.data &&
+						result.data.resourceSpecifications &&
+						result.data.resourceSpecifications.edges
+					) {
+						resourceSpecifications = result.data.resourceSpecifications.edges.map(
+							(edge) => edge.node
+						);
 					} else {
-						// If no resource specifications found, initialize as empty array
 						resourceSpecifications = [];
 						console.warn(
 							'No resource specifications found in GraphQL response, initializing empty array'
@@ -503,9 +509,7 @@ function createResourcesStore(): ResourcesStore {
 					console.log(`Fetched ${resourceSpecifications.length} resource specifications`);
 				} catch (err) {
 					console.error('Failed to fetch resource specifications from GraphQL:', err);
-					// On GraphQL failure, initialize empty array to prevent .map() errors
 					resourceSpecifications = [];
-					// Re-throw to trigger error handling
 					throw err;
 				}
 			},

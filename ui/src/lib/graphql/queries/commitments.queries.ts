@@ -371,4 +371,4 @@ export const GET_UNFULFILLED_COMMITMENTS = `
 			}
 		}
 	}
-`; 
+`;

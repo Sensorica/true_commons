@@ -8,54 +8,53 @@ export const DEFAULT_UNITS: UnitCreateParams[] = [
 	{
 		omUnitIdentifier: 'one',
 		label: 'Each',
-		symbol: 'ea',
+		symbol: 'ea'
 	},
 	{
 		omUnitIdentifier: 'hour',
 		label: 'Hour',
-		symbol: 'h',
+		symbol: 'h'
 	},
 	{
 		omUnitIdentifier: 'kilogram',
 		label: 'Kilogram',
-		symbol: 'kg',
+		symbol: 'kg'
 	},
 	{
 		omUnitIdentifier: 'meter',
 		label: 'Meter',
-		symbol: 'm',
+		symbol: 'm'
 	},
 	{
 		omUnitIdentifier: 'piece',
 		label: 'Piece',
-		symbol: 'pc',
+		symbol: 'pc'
 	},
 	{
 		omUnitIdentifier: 'minute',
 		label: 'Minute',
-		symbol: 'min',
+		symbol: 'min'
 	},
 	{
 		omUnitIdentifier: 'second',
 		label: 'Second',
-		symbol: 's',
+		symbol: 's'
 	},
 	{
 		omUnitIdentifier: 'liter',
 		label: 'Liter',
-		symbol: 'L',
+		symbol: 'L'
 	},
 	{
 		omUnitIdentifier: 'gram',
 		label: 'Gram',
-		symbol: 'g',
+		symbol: 'g'
 	},
 	{
 		omUnitIdentifier: 'day',
 		label: 'Day',
-		symbol: 'd',
-	},
-
+		symbol: 'd'
+	}
 ];
 
 /**

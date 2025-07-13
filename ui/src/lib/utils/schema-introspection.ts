@@ -78,7 +78,7 @@ function extractCreateUnitMutationInfo(schema: any): CreateUnitMutationInfo {
 		const unitArg = createUnitField.args.find((arg: any) => arg.name === 'unit');
 		if (unitArg) {
 			let inputType = unitArg.type;
-			
+
 			// Unwrap NonNull type if present
 			if (inputType.ofType) {
 				inputType = inputType.ofType;
@@ -118,7 +118,6 @@ function extractCreateUnitMutationInfo(schema: any): CreateUnitMutationInfo {
 
 		result.isSupported = true;
 		console.log('✅ createUnit mutation found and analyzed');
-
 	} catch (error) {
 		console.error('❌ Error analyzing createUnit mutation:', error);
 	}
@@ -213,7 +212,7 @@ export function printSchemaInfo(result: SchemaIntrospectionResult): void {
 			console.log(`  Description: ${mutation.description}`);
 		}
 		console.log(`  Return Type: ${mutation.returnType}`);
-		
+
 		console.log('\n📝 Mutation Arguments:');
 		mutation.args.forEach((arg) => {
 			console.log(`    ${arg.name}: ${arg.type}`);
@@ -267,7 +266,6 @@ export function printSchemaInfo(result: SchemaIntrospectionResult): void {
 		console.log('        "classifiedAs": ["mass", "weight"]');
 		console.log('      }');
 		console.log('    }');
-
 	} else {
 		console.log('❌ createUnit mutation is not supported in the current schema');
 	}

@@ -8,6 +8,7 @@ export const UNIT_FIELDS = gql`
 		id
 		label
 		symbol
+		omUnitIdentifier
 		classifiedAs
 	}
 `;
@@ -18,8 +19,10 @@ export const UNIT_FIELDS = gql`
 export const UNIT_FIELDS_EXTENDED = gql`
 	fragment UnitFieldsExtended on Unit {
 		id
+		revisionId
 		label
 		symbol
+		omUnitIdentifier
 		classifiedAs
 	}
 `;

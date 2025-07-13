@@ -88,4 +88,4 @@ export const DELETE_PROCESS_SPECIFICATION = `
 	mutation DeleteProcessSpecification($id: ID!) {
 		deleteProcessSpecification(id: $id)
 	}
-`; 
+`;

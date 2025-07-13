@@ -11,18 +11,29 @@ import type {
 	DeleteProcessSpecificationResponse
 } from '../graphql/types';
 import { GET_PROCESS_SPECIFICATIONS } from '../graphql/queries';
-import { CREATE_PROCESS_SPECIFICATION, UPDATE_PROCESS_SPECIFICATION, DELETE_PROCESS_SPECIFICATION } from '../graphql/mutations';
+import {
+	CREATE_PROCESS_SPECIFICATION,
+	UPDATE_PROCESS_SPECIFICATION,
+	DELETE_PROCESS_SPECIFICATION
+} from '../graphql/mutations';
 
 export interface ProcessSpecificationsStore {
 	readonly processSpecifications: ProcessSpecification[];
 	readonly loading: boolean;
 	readonly error: string | null;
 	fetchAllProcessSpecifications(): Promise<void>;
-	createProcessSpecification(processSpec: ProcessSpecificationCreateParams): Promise<ProcessSpecification>;
-	updateProcessSpecification(id: string, processSpec: ProcessSpecificationUpdateParams): Promise<ProcessSpecification>;
+	createProcessSpecification(
+		processSpec: ProcessSpecificationCreateParams
+	): Promise<ProcessSpecification>;
+	updateProcessSpecification(
+		id: string,
+		processSpec: ProcessSpecificationUpdateParams
+	): Promise<ProcessSpecification>;
 	deleteProcessSpecification(id: string): Promise<void>;
 	getProcessSpecificationById(id: string): ProcessSpecification | undefined;
-	validateProcessSpecificationData(processSpec: ProcessSpecificationCreateParams): Promise<string[]>;
+	validateProcessSpecificationData(
+		processSpec: ProcessSpecificationCreateParams
+	): Promise<string[]>;
 }
 
 // Convert string queries to gql documents
@@ -84,7 +95,9 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 	/**
 	 * Validates process specification data
 	 */
-	async function validateProcessSpecificationData(processSpec: ProcessSpecificationCreateParams): Promise<string[]> {
+	async function validateProcessSpecificationData(
+		processSpec: ProcessSpecificationCreateParams
+	): Promise<string[]> {
 		const errors: string[] = [];
 
 		// Check foundation requirements
@@ -103,8 +116,8 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 		}
 
 		// Check for duplicate names
-		const existingSpec = processSpecifications.find(spec => 
-			spec.name.toLowerCase() === processSpec.name.toLowerCase()
+		const existingSpec = processSpecifications.find(
+			(spec) => spec.name.toLowerCase() === processSpec.name.toLowerCase()
 		);
 		if (existingSpec) {
 			errors.push(`Process specification "${processSpec.name}" already exists`);
@@ -134,7 +147,9 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 					fetchPolicy: 'cache-first'
 				});
 
-				processSpecifications = (result.data.processSpecifications?.edges || []).map((edge) => edge.node);
+				processSpecifications = (result.data.processSpecifications?.edges || []).map(
+					(edge) => edge.node
+				);
 				console.log(`Fetched ${processSpecifications.length} process specifications`);
 			},
 			(value) => (loading = value),
@@ -145,7 +160,9 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 	/**
 	 * Creates a new process specification in the hREA system with proper validation.
 	 */
-	async function createProcessSpecification(processSpecData: ProcessSpecificationCreateParams): Promise<ProcessSpecification> {
+	async function createProcessSpecification(
+		processSpecData: ProcessSpecificationCreateParams
+	): Promise<ProcessSpecification> {
 		return withLoadingState(
 			async () => {
 				// Validate process specification data first
@@ -187,7 +204,10 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 	/**
 	 * Updates an existing process specification in the hREA system.
 	 */
-	async function updateProcessSpecification(id: string, processSpecData: ProcessSpecificationUpdateParams): Promise<ProcessSpecification> {
+	async function updateProcessSpecification(
+		id: string,
+		processSpecData: ProcessSpecificationUpdateParams
+	): Promise<ProcessSpecification> {
 		return withLoadingState(
 			async () => {
 				if (!hreaService.isInitialized) {
@@ -257,7 +277,7 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 	 * Gets a process specification by ID from the local store
 	 */
 	function getProcessSpecificationById(id: string): ProcessSpecification | undefined {
-		return processSpecifications.find(spec => spec.id === id);
+		return processSpecifications.find((spec) => spec.id === id);
 	}
 
 	return {
@@ -283,4 +303,4 @@ function createProcessSpecificationsStore(): ProcessSpecificationsStore {
 }
 
 const processSpecificationsStore = createProcessSpecificationsStore();
-export default processSpecificationsStore; 
+export default processSpecificationsStore;

@@ -363,7 +363,7 @@ function createTrueCommonsService(): TrueCommonsService {
 			effortQuantity: effort
 				? {
 						hasNumericalValue: effort,
-						hasUnit: { id: 'hour', label: 'Hour', symbol: 'h' }
+						hasUnit: { id: 'hour', label: 'Hour', symbol: 'h', omUnitIdentifier: 'hour' }
 					}
 				: undefined,
 			hasPointInTime: new Date().toISOString(),

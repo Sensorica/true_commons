@@ -35,7 +35,6 @@ export async function getSchema() {
 				console.log(`    ${field.name}${optional}: ${cleanType};`);
 			});
 			console.log('  }');
-
 		} else {
 			console.log('❌ createUnit mutation is NOT SUPPORTED in the current schema');
 		}

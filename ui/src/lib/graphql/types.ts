@@ -249,8 +249,10 @@ export interface Measure {
 
 export interface Unit {
 	id: string;
+	revisionId?: string;
 	label: string;
 	symbol: string;
+	omUnitIdentifier: string;
 	classifiedAs?: string[];
 }
 
@@ -344,7 +346,11 @@ export interface DeleteResourceSpecificationResponse {
 
 // Units Response Types
 export interface GetUnitsResponse {
-	units: Unit[];
+	units: {
+		edges: {
+			node: Unit;
+		}[];
+	};
 }
 
 export interface GetUnitResponse {

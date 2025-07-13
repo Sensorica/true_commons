@@ -83,7 +83,8 @@
 		error = null;
 
 		try {
-			const createdProcessSpec = await processSpecificationsStore.createProcessSpecification(formData);
+			const createdProcessSpec =
+				await processSpecificationsStore.createProcessSpecification(formData);
 			onProcessSpecCreated(createdProcessSpec);
 
 			// Reset form
@@ -123,16 +124,15 @@
 	<div class="form-header">
 		<h2>Create Process Specification</h2>
 		<p class="description">
-			Process specifications define templates or types of processes that can be reused across different process instances.
+			Process specifications define templates or types of processes that can be reused across
+			different process instances.
 		</p>
 	</div>
 
 	{#if !foundationReady}
 		<div class="foundation-warning">
 			<h3>⚠️ Foundation Components Required</h3>
-			<p>
-				Process specifications require foundation components to be initialized first.
-			</p>
+			<p>Process specifications require foundation components to be initialized first.</p>
 			<button
 				type="button"
 				class="btn btn-primary"
@@ -445,7 +445,7 @@
 		.process-spec-form {
 			padding: 1rem;
 		}
-		
+
 		.form-section {
 			padding: 1rem;
 		}
@@ -459,4 +459,4 @@
 			margin-bottom: 0.5rem;
 		}
 	}
-</style> 
+</style>

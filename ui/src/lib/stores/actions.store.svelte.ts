@@ -20,7 +20,7 @@ export interface ActionsStore {
 	readonly actions: Action[];
 	readonly loading: boolean;
 	readonly error: string | null;
-	fetchAllActions(): Promise<void>;
+	fetchAllActions(forceRefetch?: boolean): Promise<void>;
 	createAction(action: ActionCreateParams): Promise<Action>;
 	updateAction(id: string, action: ActionUpdateParams): Promise<Action>;
 	deleteAction(id: string): Promise<void>;
@@ -75,8 +75,13 @@ function createActionsStore(): ActionsStore {
 	/**
 	 * Fetches all actions from the hREA system.
 	 */
-	async function fetchAllActions(): Promise<void> {
+	async function fetchAllActions(forceRefetch: boolean = false): Promise<void> {
 		if (loading) return;
+
+		// Avoid refetching if we already have data, unless forced
+		if (actions.length > 0 && !forceRefetch) {
+			return;
+		}
 
 		return withLoadingState(
 			async () => {
@@ -91,7 +96,7 @@ function createActionsStore(): ActionsStore {
 
 					const result = await hreaService.apolloClient.query<GetActionsResponse>({
 						query: GET_ALL_ACTIONS,
-						fetchPolicy: 'cache-first'
+						fetchPolicy: forceRefetch ? 'network-only' : 'cache-first'
 					});
 
 					// Defensive handling of GraphQL query result
@@ -227,32 +232,35 @@ function createActionsStore(): ActionsStore {
 
 	/**
 	 * Initializes the default actions required by ValueFlows.
-	 * This creates the foundation actions needed for proper operation.
+	 * Since Actions are read-only in hREA, this just fetches existing actions.
 	 */
 	async function initializeDefaultActions(): Promise<void> {
 		console.log('Initializing default actions...');
 
-		// First fetch existing actions to check what we already have
-		await fetchAllActions();
+		try {
+			// Actions are read-only in hREA, just fetch existing ones
+			await fetchAllActions();
+			console.log(`✅ Fetched ${actions.length} existing actions from hREA`);
 
-		const existingActionIds = new Set(actions.map((a) => a.id));
+			// Check if required actions are available
+			const existingActionIds = new Set(actions.map((a) => a.id));
+			const missingActions = DEFAULT_ACTIONS.filter(
+				(defaultAction) => !existingActionIds.has(defaultAction.id)
+			);
 
-		// Create only the actions that don't exist yet
-		for (const defaultAction of DEFAULT_ACTIONS) {
-			if (!existingActionIds.has(defaultAction.id)) {
-				try {
-					await createAction(defaultAction);
-					console.log(`Created default action: ${defaultAction.label}`);
-				} catch (err) {
-					console.warn(`Failed to create default action ${defaultAction.label}:`, err);
-					// Continue with other actions even if one fails
-				}
-			} else {
-				console.log(`Action ${defaultAction.label} already exists, skipping...`);
+			if (missingActions.length > 0) {
+				console.warn(
+					`⚠️ Missing actions in hREA system:`,
+					missingActions.map((a) => a.id)
+				);
+				console.warn('Actions are system-defined and cannot be created via GraphQL mutations');
 			}
-		}
 
-		console.log('Default actions initialization completed');
+			console.log(`✅ Actions initialization completed`);
+		} catch (error) {
+			console.error('Failed to initialize default actions:', error);
+			throw error;
+		}
 	}
 
 	/**

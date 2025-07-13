@@ -367,4 +367,4 @@ export const GET_INTENTS_FOR_MATCHING = `
 			}
 		}
 	}
-`; 
+`;

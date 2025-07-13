@@ -128,7 +128,7 @@ function createFoundationService(): FoundationService {
 			// Test unit mutations
 			console.log('🧪 Testing unit mutation capabilities...');
 			try {
-				await unitsStore.createUnit({
+				const testUnit = await unitsStore.createUnit({
 					omUnitIdentifier: 'test-unit-schema-check',
 					label: 'Test Unit',
 					symbol: 'TEST'
@@ -139,7 +139,9 @@ function createFoundationService(): FoundationService {
 
 				// Clean up test unit
 				try {
-					await unitsStore.deleteUnit('test-unit-schema-check');
+					if (testUnit.revisionId) {
+						await unitsStore.deleteUnit(testUnit.id, testUnit.revisionId);
+					}
 				} catch {
 					// Ignore cleanup errors
 				}
@@ -187,31 +189,37 @@ function createFoundationService(): FoundationService {
 		try {
 			// Fetch current state of all foundation components
 			await Promise.all([
-				unitsStore.fetchAllUnits(),
-				actionsStore.fetchAllActions(),
-				resourcesStore.fetchAllResourceSpecifications()
+				unitsStore.fetchAllUnits(true),
+				actionsStore.fetchAllActions(true),
+				resourcesStore.fetchAllResourceSpecifications(true)
 			]);
 
-			// Check for required units
-			const availableUnits = Array.isArray(unitsStore.units)
-				? unitsStore.units.map((u) => u.id)
+			// Check for required units by omUnitIdentifier
+			const availableUnitOmIds = Array.isArray(unitsStore.units)
+				? unitsStore.units.map((u) => u.omUnitIdentifier)
 				: [];
-			const missingUnits = REQUIRED_UNITS.filter((id) => !availableUnits.includes(id));
+			const missingUnits = REQUIRED_UNITS.filter((omId) => !availableUnitOmIds.includes(omId));
 			const unitsReady = missingUnits.length === 0;
 
-			// Check for required actions
+			// Check for required actions - more lenient since actions are read-only in hREA
 			const availableActions = Array.isArray(actionsStore.actions)
 				? actionsStore.actions.map((a) => a.id)
 				: [];
 			const missingActions = REQUIRED_ACTIONS.filter((id) => !availableActions.includes(id));
-			const actionsReady = missingActions.length === 0;
+			// Consider actions ready if we have at least the core ValueFlows actions
+			const coreActions = ['produce', 'consume', 'use', 'transfer'];
+			const hasCoreActions = coreActions.every((id) => availableActions.includes(id));
+			const actionsReady = hasCoreActions; // More lenient check
 
 			// Check for basic resource specifications
 			const availableResourceSpecs = Array.isArray(resourcesStore.resourceSpecifications)
-				? resourcesStore.resourceSpecifications.map((rs) => rs.id)
+				? resourcesStore.resourceSpecifications.map((rs) => rs.name)
 				: [];
-			const missingResourceSpecs = REQUIRED_RESOURCE_SPECIFICATIONS.filter(
-				(id) => !availableResourceSpecs.includes(id)
+			const requiredResourceSpecNames = REQUIRED_RESOURCE_SPECIFICATIONS.map(
+				(id) => DEFAULT_RESOURCE_SPECIFICATIONS.find((spec) => spec.id === id)?.name
+			).filter((name): name is string => name !== undefined);
+			const missingResourceSpecs = requiredResourceSpecNames.filter(
+				(name) => !availableResourceSpecs.includes(name)
 			);
 			const resourceSpecificationsReady = missingResourceSpecs.length === 0;
 
@@ -413,11 +421,11 @@ function createFoundationService(): FoundationService {
 	 * Initializes default resource specifications
 	 */
 	async function initializeDefaultResourceSpecs(): Promise<void> {
-		// Check which resource specs already exist
-		const existingSpecs = resourcesStore.resourceSpecifications.map((rs) => rs.id);
+		// Check which resource specs already exist by name
+		const existingSpecNames = resourcesStore.resourceSpecifications.map((rs) => rs.name);
 
 		for (const specConfig of DEFAULT_RESOURCE_SPECIFICATIONS) {
-			if (!existingSpecs.includes(specConfig.id)) {
+			if (!existingSpecNames.includes(specConfig.name)) {
 				try {
 					const spec = {
 						id: specConfig.id,

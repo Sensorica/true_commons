@@ -180,4 +180,4 @@ export const PROPOSE_INTENT = `
 			}
 		}
 	}
-`; 
+`;

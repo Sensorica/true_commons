@@ -278,4 +278,4 @@ export const SATISFY_INTENT = `
 			}
 		}
 	}
-`; 
+`;
