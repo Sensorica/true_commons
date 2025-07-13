@@ -2,12 +2,15 @@ import hreaService from './hrea.service.svelte';
 import unitsStore from '../stores/units.store.svelte';
 import actionsStore from '../stores/actions.store.svelte';
 import resourcesStore from '../stores/resources.store.svelte';
-import type { ResourceSpecification } from '../graphql/types';
+import processSpecificationsStore from '../stores/process-specifications.store.svelte';
+import type { ResourceSpecification, ProcessSpecificationCreateParams } from '../graphql/types';
 import {
 	REQUIRED_UNITS,
 	REQUIRED_ACTIONS,
 	REQUIRED_RESOURCE_SPECIFICATIONS,
-	DEFAULT_RESOURCE_SPECIFICATIONS
+	DEFAULT_RESOURCE_SPECIFICATIONS,
+	DEFAULT_PROCESS_SPECIFICATIONS,
+	REQUIRED_PROCESS_SPECIFICATIONS
 } from '../data';
 
 export interface FoundationService {
@@ -32,11 +35,13 @@ export interface FoundationStatus {
 	unitsReady: boolean;
 	actionsReady: boolean;
 	resourceSpecificationsReady: boolean;
+	processSpecificationsReady: boolean;
 	allReady: boolean;
 	missing: {
 		units: string[];
 		actions: string[];
 		resourceSpecifications: string[];
+		processSpecifications: string[];
 	};
 }
 
@@ -59,7 +64,7 @@ function createFoundationService(): FoundationService {
 	let initializationProgress: InitializationProgress = $state({
 		step: 'Not started',
 		completed: 0,
-		total: 4,
+		total: 5,
 		currentOperation: ''
 	});
 	let initializationError: string | null = $state(null);
@@ -71,7 +76,7 @@ function createFoundationService(): FoundationService {
 		initializationProgress = {
 			step,
 			completed,
-			total: 4,
+			total: 5,
 			currentOperation
 		};
 	}
@@ -191,7 +196,8 @@ function createFoundationService(): FoundationService {
 			await Promise.all([
 				unitsStore.fetchAllUnits(true),
 				actionsStore.fetchAllActions(true),
-				resourcesStore.fetchAllResourceSpecifications(true)
+				resourcesStore.fetchAllResourceSpecifications(true),
+				processSpecificationsStore.fetchAllProcessSpecifications(true)
 			]);
 
 			// Check for required units by omUnitIdentifier
@@ -223,24 +229,40 @@ function createFoundationService(): FoundationService {
 			);
 			const resourceSpecificationsReady = missingResourceSpecs.length === 0;
 
-			const allReady = unitsReady && actionsReady && resourceSpecificationsReady;
+			// Check for basic process specifications
+			const availableProcessSpecs = Array.isArray(processSpecificationsStore.processSpecifications)
+				? processSpecificationsStore.processSpecifications.map((ps) => ps.name)
+				: [];
+			const requiredProcessSpecNames = REQUIRED_PROCESS_SPECIFICATIONS.map(
+				(id) => DEFAULT_PROCESS_SPECIFICATIONS.find((spec) => spec.id === id)?.name
+			).filter((name): name is string => name !== undefined);
+			const missingProcessSpecs = requiredProcessSpecNames.filter(
+				(name) => !availableProcessSpecs.includes(name)
+			);
+			const processSpecificationsReady = missingProcessSpecs.length === 0;
+
+			const allReady =
+				unitsReady && actionsReady && resourceSpecificationsReady && processSpecificationsReady;
 
 			const status: FoundationStatus = {
 				unitsReady,
 				actionsReady,
 				resourceSpecificationsReady,
+				processSpecificationsReady,
 				allReady,
 				missing: {
 					units: missingUnits,
 					actions: missingActions,
-					resourceSpecifications: missingResourceSpecs
+					resourceSpecifications: missingResourceSpecs,
+					processSpecifications: missingProcessSpecs
 				}
 			};
 
 			console.log('📊 Foundation status:', {
 				unitsReady: `${unitsReady} (${missingUnits.length} missing)`,
 				actionsReady: `${actionsReady} (${missingActions.length} missing)`,
-				resourceSpecsReady: `${resourceSpecificationsReady} (${missingResourceSpecs.length} missing)`
+				resourceSpecsReady: `${resourceSpecificationsReady} (${missingResourceSpecs.length} missing)`,
+				processSpecsReady: `${processSpecificationsReady} (${missingProcessSpecs.length} missing)`
 			});
 
 			if (!allReady) {
@@ -253,6 +275,9 @@ function createFoundationService(): FoundationService {
 				if (missingResourceSpecs.length > 0) {
 					console.log(`📦 Missing resource specs: ${missingResourceSpecs.join(', ')}`);
 				}
+				if (missingProcessSpecs.length > 0) {
+					console.log(`📜 Missing process specs: ${missingProcessSpecs.join(', ')}`);
+				}
 			}
 
 			return status;
@@ -264,11 +289,13 @@ function createFoundationService(): FoundationService {
 				unitsReady: false,
 				actionsReady: false,
 				resourceSpecificationsReady: false,
+				processSpecificationsReady: false,
 				allReady: false,
 				missing: {
 					units: [...REQUIRED_UNITS],
 					actions: [...REQUIRED_ACTIONS],
-					resourceSpecifications: [...REQUIRED_RESOURCE_SPECIFICATIONS]
+					resourceSpecifications: [...DEFAULT_RESOURCE_SPECIFICATIONS.map((s) => s.name)],
+					processSpecifications: [...DEFAULT_PROCESS_SPECIFICATIONS.map((s) => s.name)]
 				}
 			};
 		}
@@ -388,8 +415,24 @@ function createFoundationService(): FoundationService {
 				}
 			}
 
+			// Step 4: Ensure ProcessSpecifications
+			if (!status.processSpecificationsReady) {
+				updateProgress(
+					'Initializing Process Specifications',
+					4,
+					'Creating basic process specifications...'
+				);
+				try {
+					await initializeDefaultProcessSpecs();
+					console.log('✅ Process specifications initialization completed');
+				} catch (processSpecError) {
+					console.error('❌ Process specifications initialization failed:', processSpecError);
+					throw processSpecError;
+				}
+			}
+
 			// Final verification
-			updateProgress('Verifying Foundation', 4, 'Checking all components...');
+			updateProgress('Verifying Foundation', 5, 'Checking all components...');
 			const finalStatus = await checkFoundationRequirements();
 
 			if (finalStatus.allReady) {
@@ -398,7 +441,7 @@ function createFoundationService(): FoundationService {
 			} else {
 				console.warn('⚠️ Foundation initialization incomplete');
 				console.log(
-					`Units: ${finalStatus.unitsReady ? '✅' : '❌'}, Actions: ${finalStatus.actionsReady ? '✅' : '❌'}, Resource Specs: ${finalStatus.resourceSpecificationsReady ? '✅' : '❌'}`
+					`Units: ${finalStatus.unitsReady ? '✅' : '❌'}, Actions: ${finalStatus.actionsReady ? '✅' : '❌'}, Resource Specs: ${finalStatus.resourceSpecificationsReady ? '✅' : '❌'}, Process Specs: ${finalStatus.processSpecificationsReady ? '✅' : '❌'}`
 				);
 
 				// For read-only schemas, this might be acceptable
@@ -451,6 +494,33 @@ function createFoundationService(): FoundationService {
 	}
 
 	/**
+	 * Initializes default process specifications
+	 */
+	async function initializeDefaultProcessSpecs(): Promise<void> {
+		const existingSpecNames = processSpecificationsStore.processSpecifications.map((ps) => ps.name);
+
+		for (const specConfig of DEFAULT_PROCESS_SPECIFICATIONS) {
+			if (!existingSpecNames.includes(specConfig.name)) {
+				try {
+					const spec: ProcessSpecificationCreateParams = {
+						name: specConfig.name,
+						note: specConfig.note
+					};
+					await processSpecificationsStore.createProcessSpecification(spec);
+					console.log(`✅ Created default process specification: ${specConfig.name}`);
+				} catch (err) {
+					console.warn(
+						`⚠️ Failed to create default process specification ${specConfig.name}:`,
+						err
+					);
+				}
+			} else {
+				console.log(`⏭️ Process specification ${specConfig.name} already exists, skipping...`);
+			}
+		}
+	}
+
+	/**
 	 * Initializes the foundation service and ensures all foundation data exists
 	 */
 	async function initialize(): Promise<void> {
@@ -471,7 +541,7 @@ function createFoundationService(): FoundationService {
 			// Ensure foundation data exists
 			await ensureFoundationData();
 
-			updateProgress('Complete', 4, 'Foundation service ready');
+			updateProgress('Complete', 5, 'Foundation service ready');
 			isInitialized = true;
 			console.log('🎉 Foundation service initialized successfully');
 		} catch (error) {

@@ -9,12 +9,25 @@
 	import resourcesStore from '$lib/stores/resources.store.svelte';
 	import processesStore from '$lib/stores/processes.store.svelte';
 
+	// Local interface for form data with required quantities
+	interface EconomicEventFormData
+		extends Omit<EconomicEventCreateParams, 'resourceQuantity' | 'effortQuantity'> {
+		resourceQuantity: {
+			hasNumericalValue: number;
+			hasUnit: string;
+		};
+		effortQuantity: {
+			hasNumericalValue: number;
+			hasUnit: string;
+		};
+	}
+
 	let { onEventCreated = () => {} } = $props<{
 		onEventCreated?: (event: any) => void;
 	}>();
 
 	// Form state
-	let formData: EconomicEventCreateParams = $state({
+	let formData: EconomicEventFormData = $state({
 		action: 'produce',
 		provider: '',
 		receiver: '',

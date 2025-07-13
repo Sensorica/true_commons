@@ -313,8 +313,11 @@
 					<div class="space-y-4">
 						{#each intentsStore.intents as intent}
 							<div
-								class="cursor-pointer rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
+								role="button"
+								tabindex="0"
+								onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleIntentClick(intent)}
 								onclick={() => handleIntentClick(intent)}
+								class="cursor-pointer rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
 							>
 								<div class="flex items-center justify-between">
 									<div class="min-w-0 flex-1">
@@ -357,6 +360,7 @@
 											</span>
 										{/if}
 										<button
+											aria-label="Delete intent"
 											onclick={(e) => {
 												e.stopPropagation();
 												handleDeleteIntent(intent.id);
@@ -429,8 +433,8 @@
 						</h3>
 						<div class="mt-4 space-y-4">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-									>Action</label
+								<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>Action</span
 								>
 								<p class="mt-1 text-sm text-gray-900 dark:text-white">
 									{getActionLabel(selectedIntent.action.id)}
@@ -438,8 +442,8 @@
 							</div>
 							{#if selectedIntent.provider}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-										>Provider</label
+									<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Provider</span
 									>
 									<p class="mt-1 text-sm text-gray-900 dark:text-white">
 										{getAgentName(selectedIntent.provider.id)}
@@ -448,8 +452,8 @@
 							{/if}
 							{#if selectedIntent.receiver}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-										>Receiver</label
+									<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Receiver</span
 									>
 									<p class="mt-1 text-sm text-gray-900 dark:text-white">
 										{getAgentName(selectedIntent.receiver.id)}
@@ -458,8 +462,8 @@
 							{/if}
 							{#if selectedIntent.resourceQuantity}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-										>Resource Quantity</label
+									<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Resource Quantity</span
 									>
 									<p class="mt-1 text-sm text-gray-900 dark:text-white">
 										{selectedIntent.resourceQuantity.hasNumericalValue}
@@ -469,8 +473,8 @@
 							{/if}
 							{#if selectedIntent.effortQuantity}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-										>Effort Quantity</label
+									<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Effort Quantity</span
 									>
 									<p class="mt-1 text-sm text-gray-900 dark:text-white">
 										{selectedIntent.effortQuantity.hasNumericalValue}
@@ -480,8 +484,8 @@
 							{/if}
 							{#if selectedIntent.due}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-										>Due Date</label
+									<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Due Date</span
 									>
 									<p class="mt-1 text-sm text-gray-900 dark:text-white">
 										{formatDateTime(selectedIntent.due)}
@@ -490,15 +494,15 @@
 							{/if}
 							{#if selectedIntent.note}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-										>Description</label
+									<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Description</span
 									>
 									<p class="mt-1 text-sm text-gray-900 dark:text-white">{selectedIntent.note}</p>
 								</div>
 							{/if}
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-									>Status</label
+								<span class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+									>Status</span
 								>
 								<span
 									class="mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium {getStatusColor(

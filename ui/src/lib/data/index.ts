@@ -20,3 +20,9 @@ export {
 	getResourceSpecsByUnit,
 	type ResourceSpecificationConfig
 } from './resource-specifications';
+
+// Process specifications configuration
+export {
+	DEFAULT_PROCESS_SPECIFICATIONS,
+	REQUIRED_PROCESS_SPECIFICATIONS
+} from './process-specifications';

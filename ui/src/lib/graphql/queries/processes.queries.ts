@@ -1,4 +1,6 @@
-export const GET_PROCESSES = `
+import { gql } from '@apollo/client/core';
+
+export const GET_PROCESSES = gql`
 	query GetProcesses {
 		processes {
 			edges {
@@ -27,22 +29,7 @@ export const GET_PROCESSES = `
 	}
 `;
 
-export const GET_PROCESS_SPECIFICATIONS = `
-	query GetProcessSpecifications {
-		processSpecifications {
-			edges {
-				node {
-					id
-					name
-					note
-					classifiedAs
-				}
-			}
-		}
-	}
-`;
-
-export const GET_PROCESS_WITH_EVENTS = `
+export const GET_PROCESS_WITH_EVENTS = gql`
 	query GetProcessWithEvents($id: ID!) {
 		process(id: $id) {
 			id
@@ -147,7 +134,7 @@ export const GET_PROCESS_WITH_EVENTS = `
 	}
 `;
 
-export const GET_PROCESS_INPUTS = `
+export const GET_PROCESS_INPUTS = gql`
 	query GetProcessInputs($id: ID!) {
 		process(id: $id) {
 			id
@@ -196,7 +183,7 @@ export const GET_PROCESS_INPUTS = `
 	}
 `;
 
-export const GET_PROCESS_OUTPUTS = `
+export const GET_PROCESS_OUTPUTS = gql`
 	query GetProcessOutputs($id: ID!) {
 		process(id: $id) {
 			id

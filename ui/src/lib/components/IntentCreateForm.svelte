@@ -9,12 +9,24 @@
 	import resourcesStore from '$lib/stores/resources.store.svelte';
 	import processesStore from '$lib/stores/processes.store.svelte';
 
+	// Local interface for form data with required quantities
+	interface IntentFormData extends Omit<IntentCreateParams, 'resourceQuantity' | 'effortQuantity'> {
+		resourceQuantity: {
+			hasNumericalValue: number;
+			hasUnit: string;
+		};
+		effortQuantity: {
+			hasNumericalValue: number;
+			hasUnit: string;
+		};
+	}
+
 	let { onIntentCreated = () => {} } = $props<{
 		onIntentCreated?: (intent: any) => void;
 	}>();
 
 	// Form state
-	let formData: IntentCreateParams = $state({
+	let formData: IntentFormData = $state({
 		action: 'produce',
 		provider: '',
 		receiver: '',
@@ -326,11 +338,15 @@
 		<!-- Resource Quantities -->
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<div>
-				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+				<label
+					for="intentResourceQty"
+					class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
 					Resource Quantity
 				</label>
 				<div class="mt-1 flex space-x-2">
 					<input
+						id="intentResourceQty"
 						type="number"
 						bind:value={formData.resourceQuantity.hasNumericalValue}
 						min="0"
@@ -352,11 +368,15 @@
 			</div>
 
 			<div>
-				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+				<label
+					for="intentEffortQty"
+					class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
 					Effort Quantity
 				</label>
 				<div class="mt-1 flex space-x-2">
 					<input
+						id="intentEffortQty"
 						type="number"
 						bind:value={formData.effortQuantity.hasNumericalValue}
 						min="0"

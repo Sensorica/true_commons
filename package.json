@@ -17,6 +17,7 @@
     "build:happ": "bun run build:zomes && hc app pack workdir --recursive",
     "build:zomes": "cargo build --release --target wasm32-unknown-unknown",
     "download-hrea": "[ ! -f \"workdir/hrea.dna\" ] && curl -L --output workdir/hrea.dna https://github.com/h-REA/hREA/releases/download/happ-0.3.2-beta/hrea.dna; exit 0",
+    "check": "cd ui && bun run check",
     "postinstall": "bun run download-hrea"
   },
   "devDependencies": {

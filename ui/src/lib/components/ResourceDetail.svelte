@@ -10,7 +10,7 @@
 	const useAction: Action = { id: 'use', label: 'Use', resourceEffect: 'decrement' };
 	const transferAction: Action = { id: 'transfer', label: 'Transfer', resourceEffect: 'move' };
 
-	const mockUnit: Unit = { id: 'unit', label: 'unit', symbol: 'u' };
+	const mockUnit: Unit = { id: 'unit', label: 'unit', symbol: 'u', omUnitIdentifier: 'unit' };
 
 	// Mock economic history for demonstration purposes
 	const mockHistory: EconomicEvent[] = [
@@ -51,7 +51,7 @@
 	<div
 		class="relative mx-4 flex h-full max-h-[90vh] w-full max-w-3xl flex-col rounded-lg bg-white shadow-xl dark:bg-gray-800"
 		role="document"
-		onclick={(e) => e.stopPropagation()}
+		onpointerdown={(e) => e.stopPropagation()}
 	>
 		<header class="flex items-center justify-between border-b p-4 dark:border-gray-700">
 			<h2 class="text-xl font-bold text-gray-900 dark:text-white">{resource.name}</h2>

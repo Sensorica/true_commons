@@ -18,3 +18,6 @@ export { MEASURE_FIELDS } from './measure.fragments';
 
 // EconomicResource fragments
 export { ECONOMIC_RESOURCE_FIELDS } from './economic-resource.fragments';
+
+// ProcessSpecification fragments
+export { PROCESS_SPECIFICATION_FRAGMENT } from './process-specification.fragments';

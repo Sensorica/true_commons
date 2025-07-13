@@ -212,7 +212,7 @@
 					<input
 						type="datetime-local"
 						id="hasBeginning"
-						value={formatDateTimeForInput(formData.hasBeginning)}
+						value={formatDateTimeForInput(formData.hasBeginning || '')}
 						onchange={(e) => handleDateTimeChange(e, 'hasBeginning')}
 					/>
 				</div>
@@ -222,7 +222,7 @@
 					<input
 						type="datetime-local"
 						id="hasEnd"
-						value={formatDateTimeForInput(formData.hasEnd)}
+						value={formatDateTimeForInput(formData.hasEnd || '')}
 						onchange={(e) => handleDateTimeChange(e, 'hasEnd')}
 					/>
 				</div>

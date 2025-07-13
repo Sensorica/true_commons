@@ -66,7 +66,8 @@
 			isReady: foundationStatus?.allReady || false,
 			unitsReady: foundationStatus?.unitsReady || false,
 			actionsReady: foundationStatus?.actionsReady || false,
-			resourceSpecsReady: foundationStatus?.resourceSpecificationsReady || false
+			resourceSpecsReady: foundationStatus?.resourceSpecificationsReady || false,
+			processSpecsReady: foundationStatus?.processSpecificationsReady || false
 		}
 	});
 
@@ -576,207 +577,41 @@
 			</div>
 		</div>
 
-		<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			<!-- Units Status -->
-			<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
-				<div class="flex items-center">
-					<div class="flex-shrink-0">
-						<svg
-							class="h-5 w-5 text-gray-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-							></path>
-						</svg>
-					</div>
-					<div class="ml-3">
-						<p class="text-sm font-medium text-gray-900 dark:text-white">Units</p>
-						<p class="text-sm text-gray-500 dark:text-gray-400">
-							{unitsStore.units.length} available
-						</p>
-					</div>
-				</div>
-				<div class="flex-shrink-0">
+		<div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+			<ul class="space-y-2">
+				<li class="flex items-center justify-between">
+					<span class="text-gray-700 dark:text-gray-300">📏 Units</span>
 					{#if stats.foundation.unitsReady}
-						<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-								clip-rule="evenodd"
-							></path>
-						</svg>
+						<span class="font-semibold text-green-600 dark:text-green-400">✅ Ready</span>
 					{:else}
-						<svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-								clip-rule="evenodd"
-							></path>
-						</svg>
+						<span class="font-semibold text-yellow-600 dark:text-yellow-400">⚠️ Missing</span>
 					{/if}
-				</div>
-			</div>
-
-			<!-- Actions Status -->
-			<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
-				<div class="flex items-center">
-					<div class="flex-shrink-0">
-						<svg
-							class="h-5 w-5 text-gray-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M13 10V3L4 14h7v7l9-11h-7z"
-							></path>
-						</svg>
-					</div>
-					<div class="ml-3">
-						<p class="text-sm font-medium text-gray-900 dark:text-white">Actions</p>
-						<p class="text-sm text-gray-500 dark:text-gray-400">
-							{actionsStore.actions.length} available
-						</p>
-					</div>
-				</div>
-				<div class="flex-shrink-0">
+				</li>
+				<li class="flex items-center justify-between">
+					<span class="text-gray-700 dark:text-gray-300">⚡ Actions</span>
 					{#if stats.foundation.actionsReady}
-						<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-								clip-rule="evenodd"
-							></path>
-						</svg>
+						<span class="font-semibold text-green-600 dark:text-green-400">✅ Ready</span>
 					{:else}
-						<svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-								clip-rule="evenodd"
-							></path>
-						</svg>
+						<span class="font-semibold text-yellow-600 dark:text-yellow-400">⚠️ Missing</span>
 					{/if}
-				</div>
-			</div>
-
-			<!-- Resource Specifications Status -->
-			<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
-				<div class="flex items-center">
-					<div class="flex-shrink-0">
-						<svg
-							class="h-5 w-5 text-gray-400"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-							></path>
-						</svg>
-					</div>
-					<div class="ml-3">
-						<p class="text-sm font-medium text-gray-900 dark:text-white">Resource Specs</p>
-						<p class="text-sm text-gray-500 dark:text-gray-400">
-							{resourcesStore.resourceSpecifications.length} available
-						</p>
-					</div>
-				</div>
-				<div class="flex-shrink-0">
+				</li>
+				<li class="flex items-center justify-between">
+					<span class="text-gray-700 dark:text-gray-300">📦 Resource Specifications</span>
 					{#if stats.foundation.resourceSpecsReady}
-						<svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-								clip-rule="evenodd"
-							></path>
-						</svg>
+						<span class="font-semibold text-green-600 dark:text-green-400">✅ Ready</span>
 					{:else}
-						<svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-								clip-rule="evenodd"
-							></path>
-						</svg>
+						<span class="font-semibold text-yellow-600 dark:text-yellow-400">⚠️ Missing</span>
 					{/if}
-				</div>
-			</div>
-		</div>
-
-		<div
-			class="mt-4 flex flex-col items-center space-y-3 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4"
-		>
-			{#if !stats.foundation.isReady}
-				<button
-					onclick={initializeFoundationComponents}
-					disabled={initializingFoundation}
-					class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-				>
-					{#if initializingFoundation}
-						<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							></circle>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							></path>
-						</svg>
-						Initializing...
+				</li>
+				<li class="flex items-center justify-between">
+					<span class="text-gray-700 dark:text-gray-300">📜 Process Specifications</span>
+					{#if stats.foundation.processSpecsReady}
+						<span class="font-semibold text-green-600 dark:text-green-400">✅ Ready</span>
 					{:else}
-						Initialize Foundation Components
+						<span class="font-semibold text-yellow-600 dark:text-yellow-400">⚠️ Missing</span>
 					{/if}
-				</button>
-			{/if}
-
-			<!-- Schema Introspection Button -->
-			<button
-				onclick={introspectGraphQLSchema}
-				disabled={introspectingSchema}
-				class="inline-flex items-center rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50"
-			>
-				{#if introspectingSchema}
-					<svg class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-						></circle>
-						<path
-							class="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-						></path>
-					</svg>
-					Analyzing...
-				{:else}
-					<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-						></path>
-					</svg>
-					Analyze Create Unit Mutation
-				{/if}
-			</button>
+				</li>
+			</ul>
 		</div>
 	</div>
 

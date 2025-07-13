@@ -148,6 +148,12 @@
 				throw new Error('Selected resource specification not found');
 			}
 
+			// Get default unit, fallback to a safe default
+			const defaultUnit = selectedSpec.defaultUnitOfResource || unitsStore.getUnitById('one');
+			if (!defaultUnit) {
+				throw new Error('No valid unit found for resource creation');
+			}
+
 			// Create resource data object with proper ValueFlows structure
 			const resourceData = {
 				name: form.name,
@@ -167,11 +173,11 @@
 				// Set default quantities using proper Units
 				accountingQuantity: {
 					hasNumericalValue: 1,
-					hasUnit: selectedSpec.defaultUnitOfResource || unitsStore.getUnitById('one')
+					hasUnit: defaultUnit
 				},
 				onhandQuantity: {
 					hasNumericalValue: 1,
-					hasUnit: selectedSpec.defaultUnitOfResource || unitsStore.getUnitById('one')
+					hasUnit: defaultUnit
 				}
 			};
 

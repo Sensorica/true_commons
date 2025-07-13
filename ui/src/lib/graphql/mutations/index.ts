@@ -7,3 +7,4 @@ export * from './processes.mutations';
 export * from './actions.mutations';
 export * from './commitments.mutations';
 export * from './intents.mutations';
+export * from './process-specifications.mutations';

@@ -10,12 +10,25 @@
 	import processesStore from '$lib/stores/processes.store.svelte';
 	import intentsStore from '$lib/stores/intents.store.svelte';
 
+	// Local interface for form data with required quantities
+	interface CommitmentFormData
+		extends Omit<CommitmentCreateParams, 'resourceQuantity' | 'effortQuantity'> {
+		resourceQuantity: {
+			hasNumericalValue: number;
+			hasUnit: string;
+		};
+		effortQuantity: {
+			hasNumericalValue: number;
+			hasUnit: string;
+		};
+	}
+
 	let { onCommitmentCreated = () => {} } = $props<{
 		onCommitmentCreated?: (commitment: any) => void;
 	}>();
 
 	// Form state
-	let formData: CommitmentCreateParams = $state({
+	let formData: CommitmentFormData = $state({
 		action: 'produce',
 		provider: '',
 		receiver: '',
@@ -326,11 +339,15 @@
 		<!-- Resource Quantities -->
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			<div>
-				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+				<label
+					for="resourceQuantityValue"
+					class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
 					Resource Quantity
 				</label>
 				<div class="mt-1 flex space-x-2">
 					<input
+						id="resourceQuantityValue"
 						type="number"
 						bind:value={formData.resourceQuantity.hasNumericalValue}
 						min="0"
@@ -351,11 +368,15 @@
 			</div>
 
 			<div>
-				<label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+				<label
+					for="effortQuantityValue"
+					class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
 					Effort Quantity
 				</label>
 				<div class="mt-1 flex space-x-2">
 					<input
+						id="effortQuantityValue"
 						type="number"
 						bind:value={formData.effortQuantity.hasNumericalValue}
 						min="0"
@@ -476,9 +497,9 @@
 		<!-- Intent Satisfaction -->
 		{#if intentsStore.intents.length > 0}
 			<div>
-				<label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+				<span class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
 					Satisfies Intents
-				</label>
+				</span>
 				<div class="max-h-40 space-y-2 overflow-y-auto">
 					{#each intentsStore.intents as intent}
 						<label class="flex items-center space-x-2">

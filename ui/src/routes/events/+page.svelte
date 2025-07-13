@@ -81,18 +81,34 @@
 	</div>
 
 	{#if showCreateForm}
-		<div class="modal-overlay" onclick={() => (showCreateForm = false)}>
-			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
-				<button class="close-button" onclick={() => (showCreateForm = false)}>&times;</button>
+		<div
+			class="modal-overlay"
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (showCreateForm = false)}
+			onclick={() => (showCreateForm = false)}
+		>
+			<div class="modal-content" onpointerdown={(e) => e.stopPropagation()}>
+				<button aria-label="Close" class="close-button" onclick={() => (showCreateForm = false)}>
+					&times;
+				</button>
 				<EconomicEventCreateForm onEventCreated={handleEventCreated} />
 			</div>
 		</div>
 	{/if}
 
 	{#if selectedEvent}
-		<div class="modal-overlay" onclick={closeEventDetail}>
-			<div class="modal-content" onclick={(e) => e.stopPropagation()}>
-				<button class="close-button" onclick={closeEventDetail}>&times;</button>
+		<div
+			class="modal-overlay"
+			role="button"
+			tabindex="0"
+			onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && closeEventDetail()}
+			onclick={closeEventDetail}
+		>
+			<div class="modal-content" onpointerdown={(e) => e.stopPropagation()}>
+				<button aria-label="Close" class="close-button" onclick={closeEventDetail}>
+					&times;
+				</button>
 				<div class="event-detail">
 					<h2>Event Details</h2>
 
@@ -218,7 +234,13 @@
 		{:else}
 			<div class="events-grid">
 				{#each economicEventsStore.events as event}
-					<div class="event-card" onclick={() => handleEventClick(event)}>
+					<div
+						class="event-card"
+						role="button"
+						tabindex="0"
+						onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleEventClick(event)}
+						onclick={() => handleEventClick(event)}
+					>
 						<div class="event-header">
 							<h3>{getActionLabel(event.action.id)}</h3>
 							<span class="event-date">{formatDateTime(event.hasPointInTime || '')}</span>

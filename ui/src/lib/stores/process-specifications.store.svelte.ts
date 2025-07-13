@@ -1,6 +1,10 @@
-import { gql } from '@apollo/client/core';
-import hreaService from '../services/hrea.service.svelte';
-import foundationService from '../services/foundation.service.svelte';
+import hreaService from '$lib/services/hrea.service.svelte';
+import {
+	CREATE_PROCESS_SPECIFICATION,
+	UPDATE_PROCESS_SPECIFICATION,
+	DELETE_PROCESS_SPECIFICATION
+} from '$lib/graphql/mutations';
+import { GET_PROCESS_SPECIFICATIONS } from '$lib/graphql/queries';
 import type {
 	ProcessSpecification,
 	ProcessSpecificationCreateParams,
@@ -9,296 +13,231 @@ import type {
 	CreateProcessSpecificationResponse,
 	UpdateProcessSpecificationResponse,
 	DeleteProcessSpecificationResponse
-} from '../graphql/types';
-import { GET_PROCESS_SPECIFICATIONS } from '../graphql/queries';
-import {
-	CREATE_PROCESS_SPECIFICATION,
-	UPDATE_PROCESS_SPECIFICATION,
-	DELETE_PROCESS_SPECIFICATION
-} from '../graphql/mutations';
+} from '$lib/graphql/types';
+import { DEFAULT_PROCESS_SPECIFICATIONS } from '$lib/data';
 
 export interface ProcessSpecificationsStore {
 	readonly processSpecifications: ProcessSpecification[];
-	readonly loading: boolean;
+	readonly isLoading: boolean;
 	readonly error: string | null;
-	fetchAllProcessSpecifications(): Promise<void>;
+	readonly isInitialized: boolean;
+	fetchAllProcessSpecifications(forceRefetch?: boolean): Promise<ProcessSpecification[]>;
 	createProcessSpecification(
-		processSpec: ProcessSpecificationCreateParams
+		processSpecification: ProcessSpecificationCreateParams
 	): Promise<ProcessSpecification>;
 	updateProcessSpecification(
-		id: string,
-		processSpec: ProcessSpecificationUpdateParams
+		processSpecification: ProcessSpecificationUpdateParams & { revisionId: string }
 	): Promise<ProcessSpecification>;
-	deleteProcessSpecification(id: string): Promise<void>;
-	getProcessSpecificationById(id: string): ProcessSpecification | undefined;
-	validateProcessSpecificationData(
-		processSpec: ProcessSpecificationCreateParams
-	): Promise<string[]>;
+	deleteProcessSpecification(revisionId: string): Promise<boolean>;
+	getProcessSpecification(id: string): ProcessSpecification | null;
+	initializeDefaultProcessSpecifications(): Promise<void>;
 }
 
-// Convert string queries to gql documents
-const GET_ALL_PROCESS_SPECIFICATIONS = gql`
-	${GET_PROCESS_SPECIFICATIONS}
-`;
-
-const CREATE_PROCESS_SPECIFICATION_MUTATION = gql`
-	${CREATE_PROCESS_SPECIFICATION}
-`;
-
-const UPDATE_PROCESS_SPECIFICATION_MUTATION = gql`
-	${UPDATE_PROCESS_SPECIFICATION}
-`;
-
-const DELETE_PROCESS_SPECIFICATION_MUTATION = gql`
-	${DELETE_PROCESS_SPECIFICATION}
-`;
-
-/**
- * Creates a process specifications store that manages process specification-related state and operations.
- * Uses the hREA service to perform GraphQL operations with proper validation.
- *
- * @returns An object with process specification state and methods
- */
 function createProcessSpecificationsStore(): ProcessSpecificationsStore {
-	// State
 	let processSpecifications: ProcessSpecification[] = $state([]);
-	let loading: boolean = $state(false);
+	let isLoading: boolean = $state(false);
 	let error: string | null = $state(null);
+	let isInitialized: boolean = $state(false);
+	let hasFetched: boolean = false;
 
-	/**
-	 * Utility function to handle loading state and errors
-	 */
-	async function withLoadingState<T>(
-		operation: () => Promise<T>,
-		setLoading: (value: boolean) => void,
-		setError: (value: string | null) => void
-	): Promise<T> {
-		if (loading) {
-			throw new Error('Another operation is in progress');
+	async function fetchAllProcessSpecifications(
+		forceRefetch = false
+	): Promise<ProcessSpecification[]> {
+		if (isLoading) return processSpecifications;
+		if (hasFetched && !forceRefetch) return processSpecifications;
+
+		isLoading = true;
+		error = null;
+
+		if (!hreaService.isInitialized || !hreaService.apolloClient) {
+			await hreaService.initialize();
 		}
-
-		setLoading(true);
-		setError(null);
 
 		try {
-			return await operation();
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			setError(`Operation failed: ${errorMessage}`);
-			console.error('Process specifications store operation failed:', err);
-			throw err;
+			const result = await hreaService.apolloClient!.query<GetProcessSpecificationsResponse>({
+				query: GET_PROCESS_SPECIFICATIONS,
+				fetchPolicy: forceRefetch ? 'network-only' : 'cache-first'
+			});
+			const specs = result.data.processSpecifications?.edges.map((edge) => edge.node) || [];
+			processSpecifications = [...specs];
+			hasFetched = true;
+			console.log(`Fetched ${specs.length} process specifications`);
+			return processSpecifications;
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : 'Unknown error';
+			error = `Failed to fetch process specifications: ${message}`;
+			console.error(error, e);
+			throw new Error(error);
 		} finally {
-			setLoading(false);
+			isLoading = false;
 		}
 	}
 
-	/**
-	 * Validates process specification data
-	 */
-	async function validateProcessSpecificationData(
-		processSpec: ProcessSpecificationCreateParams
-	): Promise<string[]> {
-		const errors: string[] = [];
-
-		// Check foundation requirements
-		if (!foundationService.isInitialized) {
-			try {
-				await foundationService.initialize();
-			} catch (err) {
-				errors.push('Foundation service initialization failed');
-				return errors;
-			}
-		}
-
-		// Validate name is provided
-		if (!processSpec.name?.trim()) {
-			errors.push('Process specification name is required');
-		}
-
-		// Check for duplicate names
-		const existingSpec = processSpecifications.find(
-			(spec) => spec.name.toLowerCase() === processSpec.name.toLowerCase()
-		);
-		if (existingSpec) {
-			errors.push(`Process specification "${processSpec.name}" already exists`);
-		}
-
-		return errors;
-	}
-
-	/**
-	 * Fetches all process specifications from the hREA system.
-	 */
-	async function fetchAllProcessSpecifications(): Promise<void> {
-		if (loading) return;
-
-		return withLoadingState(
-			async () => {
-				if (!hreaService.isInitialized) {
-					await hreaService.initialize();
-				}
-
-				if (!hreaService.apolloClient) {
-					throw new Error('Apollo client is not available');
-				}
-
-				const result = await hreaService.apolloClient.query<GetProcessSpecificationsResponse>({
-					query: GET_ALL_PROCESS_SPECIFICATIONS,
-					fetchPolicy: 'cache-first'
-				});
-
-				processSpecifications = (result.data.processSpecifications?.edges || []).map(
-					(edge) => edge.node
-				);
-				console.log(`Fetched ${processSpecifications.length} process specifications`);
-			},
-			(value) => (loading = value),
-			(value) => (error = value)
-		);
-	}
-
-	/**
-	 * Creates a new process specification in the hREA system with proper validation.
-	 */
 	async function createProcessSpecification(
 		processSpecData: ProcessSpecificationCreateParams
 	): Promise<ProcessSpecification> {
-		return withLoadingState(
-			async () => {
-				// Validate process specification data first
-				const validationErrors = await validateProcessSpecificationData(processSpecData);
-				if (validationErrors.length > 0) {
-					throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+		if (isLoading) throw new Error('Another operation is in progress.');
+		isLoading = true;
+		error = null;
+
+		if (!hreaService.isInitialized || !hreaService.apolloClient) {
+			await hreaService.initialize();
+		}
+
+		try {
+			const result = await hreaService.apolloClient!.mutate<CreateProcessSpecificationResponse>({
+				mutation: CREATE_PROCESS_SPECIFICATION,
+				variables: {
+					processSpecification: processSpecData
 				}
+			});
 
-				if (!hreaService.isInitialized) {
-					await hreaService.initialize();
-				}
-
-				if (!hreaService.apolloClient) {
-					throw new Error('Apollo client is not available');
-				}
-
-				const result = await hreaService.apolloClient.mutate<CreateProcessSpecificationResponse>({
-					mutation: CREATE_PROCESS_SPECIFICATION_MUTATION,
-					variables: {
-						processSpecification: processSpecData
-					}
-				});
-
-				const newProcessSpec = result.data?.createProcessSpecification.processSpecification;
-				if (!newProcessSpec) {
-					throw new Error('Failed to create process specification - no data returned');
-				}
-
-				processSpecifications = [...processSpecifications, newProcessSpec];
-				console.log('Created new process specification:', newProcessSpec.id);
-
-				return newProcessSpec;
-			},
-			(value) => (loading = value),
-			(value) => (error = value)
-		);
+			const newSpec = result.data?.createProcessSpecification.processSpecification;
+			if (!newSpec) {
+				throw new Error('Failed to create process specification');
+			}
+			await fetchAllProcessSpecifications(true);
+			return newSpec;
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : 'Unknown error';
+			error = `Failed to create process specification: ${message}`;
+			console.error(error, e);
+			throw new Error(error);
+		} finally {
+			isLoading = false;
+		}
 	}
 
-	/**
-	 * Updates an existing process specification in the hREA system.
-	 */
 	async function updateProcessSpecification(
-		id: string,
-		processSpecData: ProcessSpecificationUpdateParams
+		processSpecData: ProcessSpecificationUpdateParams & { revisionId: string }
 	): Promise<ProcessSpecification> {
-		return withLoadingState(
-			async () => {
-				if (!hreaService.isInitialized) {
-					await hreaService.initialize();
+		if (isLoading) throw new Error('Another operation is in progress.');
+		isLoading = true;
+		error = null;
+
+		if (!hreaService.isInitialized || !hreaService.apolloClient) {
+			await hreaService.initialize();
+		}
+
+		try {
+			const result = await hreaService.apolloClient!.mutate<UpdateProcessSpecificationResponse>({
+				mutation: UPDATE_PROCESS_SPECIFICATION,
+				variables: {
+					processSpecification: processSpecData
 				}
+			});
 
-				if (!hreaService.apolloClient) {
-					throw new Error('Apollo client is not available');
-				}
-
-				const result = await hreaService.apolloClient.mutate<UpdateProcessSpecificationResponse>({
-					mutation: UPDATE_PROCESS_SPECIFICATION_MUTATION,
-					variables: {
-						id,
-						processSpecification: processSpecData
-					}
-				});
-
-				const updatedProcessSpec = result.data?.updateProcessSpecification.processSpecification;
-				if (!updatedProcessSpec) {
-					throw new Error('Failed to update process specification - no data returned');
-				}
-
-				// Update in local store
-				const index = processSpecifications.findIndex((spec) => spec.id === id);
-				if (index !== -1) {
-					processSpecifications[index] = updatedProcessSpec;
-				}
-
-				console.log('Updated process specification:', id);
-				return updatedProcessSpec;
-			},
-			(value) => (loading = value),
-			(value) => (error = value)
-		);
+			const updatedSpec = result.data?.updateProcessSpecification.processSpecification;
+			if (!updatedSpec) {
+				throw new Error('Failed to update process specification');
+			}
+			await fetchAllProcessSpecifications(true);
+			return updatedSpec;
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : 'Unknown error';
+			error = `Failed to update process specification: ${message}`;
+			console.error(error, e);
+			throw new Error(error);
+		} finally {
+			isLoading = false;
+		}
 	}
 
-	/**
-	 * Deletes a process specification from the hREA system.
-	 */
-	async function deleteProcessSpecification(id: string): Promise<void> {
-		return withLoadingState(
-			async () => {
-				if (!hreaService.isInitialized) {
-					await hreaService.initialize();
-				}
+	async function deleteProcessSpecification(revisionId: string): Promise<boolean> {
+		if (isLoading) throw new Error('Another operation is in progress.');
+		isLoading = true;
+		error = null;
 
-				if (!hreaService.apolloClient) {
-					throw new Error('Apollo client is not available');
-				}
+		if (!hreaService.isInitialized || !hreaService.apolloClient) {
+			await hreaService.initialize();
+		}
 
-				await hreaService.apolloClient.mutate<DeleteProcessSpecificationResponse>({
-					mutation: DELETE_PROCESS_SPECIFICATION_MUTATION,
-					variables: { id }
-				});
+		try {
+			const result = await hreaService.apolloClient!.mutate<DeleteProcessSpecificationResponse>({
+				mutation: DELETE_PROCESS_SPECIFICATION,
+				variables: { revisionId }
+			});
 
-				// Remove from local store
-				processSpecifications = processSpecifications.filter((spec) => spec.id !== id);
-				console.log('Deleted process specification:', id);
-			},
-			(value) => (loading = value),
-			(value) => (error = value)
-		);
+			const success = !!result.data?.deleteProcessSpecification;
+			if (success) {
+				await fetchAllProcessSpecifications(true);
+			}
+			return success;
+		} catch (e: unknown) {
+			const message = e instanceof Error ? e.message : 'Unknown error';
+			error = `Failed to delete process specification: ${message}`;
+			console.error(error, e);
+			throw new Error(error);
+		} finally {
+			isLoading = false;
+		}
 	}
 
-	/**
-	 * Gets a process specification by ID from the local store
-	 */
-	function getProcessSpecificationById(id: string): ProcessSpecification | undefined {
-		return processSpecifications.find((spec) => spec.id === id);
+	async function initializeDefaultProcessSpecifications(): Promise<void> {
+		if (isLoading) {
+			console.warn('Initialization already in progress, skipping.');
+			return;
+		}
+		console.log('🔄 Initializing default process specifications...');
+		await fetchAllProcessSpecifications(true);
+		const existingSpecNames = processSpecifications.map((ps) => ps.name);
+
+		for (const specConfig of DEFAULT_PROCESS_SPECIFICATIONS) {
+			if (!existingSpecNames.includes(specConfig.name)) {
+				try {
+					console.log(`⚙️ Creating process specification: ${specConfig.name}`);
+					await createProcessSpecification({
+						name: specConfig.name,
+						note: specConfig.note
+					});
+				} catch (e: unknown) {
+					const message = e instanceof Error ? e.message : 'Unknown error';
+					console.warn(
+						`⚠️ Failed to create default process specification ${specConfig.name}:`,
+						message
+					);
+				}
+			} else {
+				console.log(`⏭️ Process specification ${specConfig.name} already exists, skipping...`);
+			}
+		}
+		console.log('✅ Default process specifications initialization complete.');
+	}
+
+	function getProcessSpecification(id: string): ProcessSpecification | null {
+		return processSpecifications.find((spec) => spec.id === id) || null;
+	}
+
+	async function initialize() {
+		if (isInitialized) return;
+		await fetchAllProcessSpecifications();
+		isInitialized = true;
+	}
+
+	if (typeof window !== 'undefined') {
+		// Avoid initializing during SSR to prevent Holochain connection errors
+		initialize();
 	}
 
 	return {
-		// Getters
 		get processSpecifications() {
 			return processSpecifications;
 		},
-		get loading() {
-			return loading;
+		get isLoading() {
+			return isLoading;
 		},
 		get error() {
 			return error;
 		},
-
-		// Methods
+		get isInitialized() {
+			return isInitialized;
+		},
 		fetchAllProcessSpecifications,
 		createProcessSpecification,
 		updateProcessSpecification,
 		deleteProcessSpecification,
-		getProcessSpecificationById,
-		validateProcessSpecificationData
+		getProcessSpecification,
+		initializeDefaultProcessSpecifications
 	};
 }
 

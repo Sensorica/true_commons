@@ -169,6 +169,10 @@
 					<div class="space-y-4">
 						{#each commitmentsStore.commitments as commitment}
 							<div
+								role="button"
+								tabindex="0"
+								onkeydown={(e) =>
+									(e.key === 'Enter' || e.key === ' ') && handleCommitmentClick(commitment)}
 								class="cursor-pointer rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700"
 								onclick={() => handleCommitmentClick(commitment)}
 							>
@@ -213,6 +217,7 @@
 											</span>
 										{/if}
 										<button
+											aria-label="Delete commitment"
 											onclick={(e) => {
 												e.stopPropagation();
 												handleDeleteCommitment(commitment.id);

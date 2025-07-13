@@ -322,11 +322,17 @@
 
 <!-- Process Details Modal -->
 {#if showProcessModal && selectedProcess}
-	<div class="modal-overlay" onclick={closeProcessModal}>
-		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+	<div
+		role="button"
+		tabindex="0"
+		onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && closeProcessModal()}
+		class="modal-overlay"
+		onclick={closeProcessModal}
+	>
+		<div class="modal-content" onpointerdown={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h2>{selectedProcess.name}</h2>
-				<button class="close-btn" onclick={closeProcessModal}>×</button>
+				<button aria-label="Close" class="close-btn" onclick={closeProcessModal}>×</button>
 			</div>
 
 			<div class="modal-body">
@@ -434,11 +440,17 @@
 
 <!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm && processToDelete}
-	<div class="modal-overlay" onclick={cancelDelete}>
-		<div class="modal-content" onclick={(e) => e.stopPropagation()}>
+	<div
+		role="button"
+		tabindex="0"
+		onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && cancelDelete()}
+		class="modal-overlay"
+		onclick={cancelDelete}
+	>
+		<div class="modal-content" onpointerdown={(e) => e.stopPropagation()}>
 			<div class="modal-header">
 				<h2>Confirm Delete</h2>
-				<button class="close-btn" onclick={cancelDelete}>×</button>
+				<button aria-label="Close" class="close-btn" onclick={cancelDelete}>×</button>
 			</div>
 
 			<div class="modal-body">

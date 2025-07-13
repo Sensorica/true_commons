@@ -1,4 +1,6 @@
-export const CREATE_PROCESS = `
+import { gql } from '@apollo/client/core';
+
+export const CREATE_PROCESS = gql`
 	mutation CreateProcess($process: ProcessCreateParams!) {
 		createProcess(process: $process) {
 			process {
@@ -25,7 +27,7 @@ export const CREATE_PROCESS = `
 	}
 `;
 
-export const UPDATE_PROCESS = `
+export const UPDATE_PROCESS = gql`
 	mutation UpdateProcess($id: ID!, $process: ProcessUpdateParams!) {
 		updateProcess(id: $id, process: $process) {
 			process {
@@ -52,40 +54,8 @@ export const UPDATE_PROCESS = `
 	}
 `;
 
-export const DELETE_PROCESS = `
+export const DELETE_PROCESS = gql`
 	mutation DeleteProcess($id: ID!) {
 		deleteProcess(id: $id)
-	}
-`;
-
-export const CREATE_PROCESS_SPECIFICATION = `
-	mutation CreateProcessSpecification($processSpecification: ProcessSpecificationCreateParams!) {
-		createProcessSpecification(processSpecification: $processSpecification) {
-			processSpecification {
-				id
-				name
-				note
-				classifiedAs
-			}
-		}
-	}
-`;
-
-export const UPDATE_PROCESS_SPECIFICATION = `
-	mutation UpdateProcessSpecification($id: ID!, $processSpecification: ProcessSpecificationUpdateParams!) {
-		updateProcessSpecification(id: $id, processSpecification: $processSpecification) {
-			processSpecification {
-				id
-				name
-				note
-				classifiedAs
-			}
-		}
-	}
-`;
-
-export const DELETE_PROCESS_SPECIFICATION = `
-	mutation DeleteProcessSpecification($id: ID!) {
-		deleteProcessSpecification(id: $id)
 	}
 `;

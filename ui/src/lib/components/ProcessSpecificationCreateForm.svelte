@@ -62,12 +62,20 @@
 	}
 
 	async function validateForm(): Promise<boolean> {
-		if (!foundationReady) {
-			validationErrors = ['Foundation components not ready'];
-			return false;
+		validationErrors = [];
+
+		if (!formData.name.trim()) {
+			validationErrors.push('Process specification name is required');
 		}
 
-		validationErrors = await processSpecificationsStore.validateProcessSpecificationData(formData);
+		// Check for duplicate names
+		const existingSpec = processSpecificationsStore.processSpecifications.find(
+			(spec) => spec.name.toLowerCase() === formData.name.toLowerCase()
+		);
+		if (existingSpec) {
+			validationErrors.push(`Process specification "${formData.name}" already exists`);
+		}
+
 		return validationErrors.length === 0;
 	}
 
@@ -102,14 +110,20 @@
 	}
 
 	function addClassification() {
-		if (classificationInput.trim() && !formData.classifiedAs.includes(classificationInput.trim())) {
+		if (
+			classificationInput.trim() &&
+			formData.classifiedAs &&
+			!formData.classifiedAs.includes(classificationInput.trim())
+		) {
 			formData.classifiedAs = [...formData.classifiedAs, classificationInput.trim()];
 			classificationInput = '';
 		}
 	}
 
 	function removeClassification(index: number) {
-		formData.classifiedAs = formData.classifiedAs.filter((_, i) => i !== index);
+		if (formData.classifiedAs) {
+			formData.classifiedAs = formData.classifiedAs.filter((_, i) => i !== index);
+		}
 	}
 
 	function handleClassificationKeyDown(event: KeyboardEvent) {
@@ -188,11 +202,11 @@
 					</div>
 				</div>
 
-				{#if formData.classifiedAs.length > 0}
+				{#if formData.classifiedAs && formData.classifiedAs.length > 0}
 					<div class="classifications-list">
 						<h4>Classifications:</h4>
 						<div class="classification-tags">
-							{#each formData.classifiedAs as classification, index}
+							{#each formData.classifiedAs || [] as classification, index}
 								<span class="classification-tag">
 									{classification}
 									<button

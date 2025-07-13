@@ -7,3 +7,4 @@ export * from './units.queries';
 export * from './processes.queries';
 export * from './commitments.queries';
 export * from './intents.queries';
+export * from './process-specifications.queries';
