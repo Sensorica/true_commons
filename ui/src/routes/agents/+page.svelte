@@ -1,16 +1,13 @@
 <script lang="ts">
 	import agentsStore from '$lib/stores/agents.store.svelte';
 	import economicEventsStore from '$lib/stores/economic-events.store.svelte';
-	import type { Agent } from '$lib/graphql/types';
+	import type { Agent, AgentMetadata } from '$lib/graphql/types';
+	import { stringifyAgentMetadata } from '$lib/graphql/types';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import AgentProfileForm from '$lib/components/AgentProfileForm.svelte';
 	import AgentProfileDisplay from '$lib/components/AgentProfileDisplay.svelte';
 
-	let agentName = $state('');
-	let agentNote = $state('');
-	let agentLocation = $state('');
-	let showCreateForm = $state(false);
 	let showProfileForm = $state(false);
 	let editingAgent = $state<Agent | null>(null);
 	let selectedAgentForMyAgent = $state('');
@@ -35,35 +32,6 @@
 		recent: [...agentsStore.agents].sort((a, b) => a.name.localeCompare(b.name)).slice(0, 5),
 		myAgentSet: !!agentsStore.myAgent
 	});
-
-	// Create new agent (legacy form)
-	async function createAgent() {
-		if (!agentName.trim()) {
-			alert('Please enter an agent name');
-			return;
-		}
-
-		try {
-			const newAgent = await agentsStore.createAgent({
-				name: agentName.trim(),
-				note: agentNote.trim() || undefined
-			});
-
-			console.log('Agent created successfully:', newAgent);
-
-			// Reset form
-			agentName = '';
-			agentNote = '';
-			agentLocation = '';
-			showCreateForm = false;
-
-			// Refresh agents list
-			await agentsStore.fetchAllAgents();
-		} catch (error) {
-			console.error('Failed to create agent:', error);
-			alert('Failed to create agent. Please try again.');
-		}
-	}
 
 	// Profile form handlers
 	function openCreateProfileForm() {
@@ -137,29 +105,291 @@
 
 	// Testing functions
 	async function createSampleAgent() {
+		const now = new Date().toISOString();
+
 		const sampleAgents = [
 			{
 				name: 'Lynn Foster',
-				note: 'Co-creator of ValueFlows and hREA, systems thinker focused on economic coordination and open value networks.'
+				image: 'https://avatars.githubusercontent.com/u/1234567?v=4',
+				metadata: {
+					description:
+						'Co-creator of ValueFlows and hREA, systems thinker focused on economic coordination and open value networks.',
+					bio: 'Lynn Foster is a pioneering systems thinker who has dedicated her career to developing frameworks for economic coordination in networked organizations. She co-created ValueFlows, a vocabulary for the distributed economic web, and has been instrumental in advancing open value networks and commons-based peer production.',
+					title: 'Systems Architect & Economic Coordination Researcher',
+					organization: 'ValueFlows Collective',
+					email: 'lynn.foster@valueflows.org',
+					website: 'https://valueflows.org',
+					socialMedia: {
+						twitter: '@lynnfoster',
+						linkedin: 'linkedin.com/in/lynnfoster',
+						github: 'github.com/lynnfoster',
+						orcid: '0000-0002-1234-5678'
+					},
+					skills: [
+						'Systems Thinking',
+						'Economic Modeling',
+						'Network Theory',
+						'Open Source Development',
+						'Community Building'
+					],
+					expertise: [
+						'ValueFlows',
+						'hREA',
+						'Economic Networks',
+						'Distributed Systems',
+						'Commons Governance'
+					],
+					interests: [
+						'Regenerative Economics',
+						'Peer Production',
+						'Network Governance',
+						'Open Value Networks'
+					],
+					location: {
+						city: 'Portland',
+						country: 'United States'
+					},
+					preferences: {
+						visibility: 'public',
+						contactPreference: 'email',
+						notifications: true
+					},
+					metadata: {
+						createdAt: now,
+						updatedAt: now,
+						version: '1.0'
+					}
+				} as AgentMetadata
 			},
 			{
 				name: 'Bob Haugen',
-				note: 'Co-creator of ValueFlows and hREA, software developer specializing in economic network protocols and distributed systems.'
+				image: 'https://avatars.githubusercontent.com/u/2345678?v=4',
+				metadata: {
+					description:
+						'Co-creator of ValueFlows and hREA, software developer specializing in economic network protocols and distributed systems.',
+					bio: 'Bob Haugen is a veteran software developer and systems architect with over 30 years of experience in building distributed systems. He co-created ValueFlows and hREA, focusing on the technical implementation of economic coordination protocols for networked organizations.',
+					title: 'Senior Software Architect',
+					organization: 'Mutual Aid Network',
+					email: 'bob.haugen@mutualaid.org',
+					website: 'https://github.com/bhaugen',
+					socialMedia: {
+						twitter: '@bhaugen',
+						linkedin: 'linkedin.com/in/bobhaugen',
+						github: 'github.com/bhaugen',
+						orcid: '0000-0003-2345-6789'
+					},
+					skills: [
+						'Python',
+						'Django',
+						'GraphQL',
+						'Distributed Systems',
+						'Economic Modeling',
+						'Database Design'
+					],
+					expertise: [
+						'hREA Implementation',
+						'ValueFlows',
+						'Economic Software',
+						'Network Resource Planning',
+						'Holochain'
+					],
+					interests: [
+						'Economic Democracy',
+						'Cooperative Technology',
+						'Distributed Ledgers',
+						'Resource Flow Modeling'
+					],
+					location: {
+						city: 'Minneapolis',
+						country: 'United States'
+					},
+					preferences: {
+						visibility: 'public',
+						contactPreference: 'email',
+						notifications: true
+					},
+					metadata: {
+						createdAt: now,
+						updatedAt: now,
+						version: '1.0'
+					}
+				} as AgentMetadata
 			},
 			{
 				name: 'Carol Chen',
-				note: 'Research scientist focused on open-source hardware and maker spaces.'
+				image: 'https://avatars.githubusercontent.com/u/3456789?v=4',
+				metadata: {
+					description: 'Research scientist focused on open-source hardware and maker spaces.',
+					bio: 'Dr. Carol Chen is a research scientist and maker space advocate who bridges the gap between academic research and practical implementation. She specializes in open-source hardware development and has been instrumental in building collaborative fabrication networks.',
+					title: 'Research Scientist & Maker Space Coordinator',
+					organization: 'Open Hardware Foundation',
+					email: 'carol.chen@openhardware.org',
+					website: 'https://carolchen.dev',
+					socialMedia: {
+						twitter: '@carolchen_maker',
+						linkedin: 'linkedin.com/in/carolchen',
+						github: 'github.com/carolchen',
+						orcid: '0000-0004-3456-7890'
+					},
+					skills: [
+						'Electronics Design',
+						'CAD/CAM',
+						'3D Printing',
+						'Arduino',
+						'Raspberry Pi',
+						'Python',
+						'Community Management'
+					],
+					expertise: [
+						'Open Hardware',
+						'Maker Spaces',
+						'Digital Fabrication',
+						'Electronics Prototyping',
+						'STEM Education'
+					],
+					interests: [
+						'Sustainable Technology',
+						'Educational Tools',
+						'Community Workshops',
+						'Open Source Hardware'
+					],
+					location: {
+						city: 'San Francisco',
+						country: 'United States'
+					},
+					preferences: {
+						visibility: 'public',
+						contactPreference: 'email',
+						notifications: true
+					},
+					metadata: {
+						createdAt: now,
+						updatedAt: now,
+						version: '1.0'
+					}
+				} as AgentMetadata
 			},
 			{
 				name: 'David Kim',
-				note: 'Urban farmer and educator promoting local food systems and community resilience.'
+				image: 'https://avatars.githubusercontent.com/u/4567890?v=4',
+				metadata: {
+					description:
+						'Urban farmer and educator promoting local food systems and community resilience.',
+					bio: 'David Kim is an urban agriculture specialist and community educator who has spent over 15 years developing sustainable food systems in urban environments. He combines traditional farming knowledge with modern technology to create resilient local food networks.',
+					title: 'Urban Agriculture Specialist',
+					organization: 'Community Resilience Network',
+					email: 'david.kim@resilientcommunity.org',
+					website: 'https://urbanfarmcollective.org',
+					socialMedia: {
+						twitter: '@davidkim_farm',
+						linkedin: 'linkedin.com/in/davidkimfarm',
+						github: 'github.com/davidkimfarm',
+						orcid: '0000-0005-4567-8901'
+					},
+					skills: [
+						'Permaculture',
+						'Hydroponic Systems',
+						'Community Organizing',
+						'Educational Program Design',
+						'Sustainable Agriculture'
+					],
+					expertise: [
+						'Urban Farming',
+						'Food System Design',
+						'Community Education',
+						'Sustainable Practices',
+						'Local Food Networks'
+					],
+					interests: [
+						'Food Security',
+						'Climate Resilience',
+						'Community Gardens',
+						'Regenerative Agriculture'
+					],
+					location: {
+						city: 'Detroit',
+						country: 'United States'
+					},
+					preferences: {
+						visibility: 'public',
+						contactPreference: 'email',
+						notifications: true
+					},
+					metadata: {
+						createdAt: now,
+						updatedAt: now,
+						version: '1.0'
+					}
+				} as AgentMetadata
+			},
+			{
+				name: 'Maria Rodriguez',
+				image: 'https://avatars.githubusercontent.com/u/5678901?v=4',
+				metadata: {
+					description:
+						'Community organizer and social entrepreneur focused on cooperative economics and mutual aid.',
+					bio: 'Maria Rodriguez is a community organizer and social entrepreneur who has dedicated her career to building cooperative economic structures and mutual aid networks. She has helped establish numerous worker cooperatives and community-owned enterprises across Latin America.',
+					title: 'Community Organizer & Cooperative Developer',
+					organization: 'Cooperative Economics Institute',
+					email: 'maria.rodriguez@coopeconomics.org',
+					website: 'https://coopeconomics.org',
+					socialMedia: {
+						twitter: '@maria_coop',
+						linkedin: 'linkedin.com/in/mariarodriguez',
+						github: 'github.com/mariarodriguez',
+						orcid: '0000-0006-5678-9012'
+					},
+					skills: [
+						'Community Organizing',
+						'Cooperative Development',
+						'Financial Planning',
+						'Grant Writing',
+						'Facilitation'
+					],
+					expertise: [
+						'Worker Cooperatives',
+						'Mutual Aid Networks',
+						'Community Finance',
+						'Social Enterprise',
+						'Solidarity Economy'
+					],
+					interests: [
+						'Economic Democracy',
+						'Social Justice',
+						'Community Resilience',
+						'Cooperative Movement'
+					],
+					location: {
+						city: 'Mexico City',
+						country: 'Mexico'
+					},
+					languages: [
+						{ language: 'Spanish', proficiency: 'native' },
+						{ language: 'English', proficiency: 'fluent' },
+						{ language: 'Portuguese', proficiency: 'intermediate' }
+					],
+					preferences: {
+						visibility: 'public',
+						contactPreference: 'email',
+						notifications: true
+					},
+					metadata: {
+						createdAt: now,
+						updatedAt: now,
+						version: '1.0'
+					}
+				} as AgentMetadata
 			}
 		];
 
 		const randomSample = sampleAgents[Math.floor(Math.random() * sampleAgents.length)];
 
 		try {
-			const newAgent = await agentsStore.createAgent(randomSample);
+			const newAgent = await agentsStore.createAgent({
+				name: randomSample.name,
+				image: randomSample.image,
+				note: stringifyAgentMetadata(randomSample.metadata)
+			});
 			console.log('Sample agent created:', newAgent);
 			await agentsStore.fetchAllAgents();
 		} catch (error) {
@@ -290,95 +520,13 @@
 	<div class="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="text-xl font-semibold text-gray-900 dark:text-white">Create New Agent</h2>
-			<div class="flex space-x-2">
-				<button
-					onclick={openCreateProfileForm}
-					class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-				>
-					Create Profile
-				</button>
-				<button
-					onclick={() => (showCreateForm = !showCreateForm)}
-					class="rounded-lg bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-				>
-					{showCreateForm ? 'Cancel' : 'Quick Create'}
-				</button>
-			</div>
-		</div>
-
-		{#if showCreateForm}
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					createAgent();
-				}}
-				class="space-y-4"
+			<button
+				onclick={openCreateProfileForm}
+				class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
 			>
-				<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-					<div>
-						<label
-							for="agent-name"
-							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-						>
-							Name *
-						</label>
-						<input
-							type="text"
-							id="agent-name"
-							bind:value={agentName}
-							required
-							placeholder="Enter agent name"
-							class="mt-1 block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-						/>
-					</div>
-					<div>
-						<label
-							for="agent-location"
-							class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-						>
-							Primary Location
-						</label>
-						<input
-							type="text"
-							id="agent-location"
-							bind:value={agentLocation}
-							placeholder="e.g., Portland, Oregon"
-							class="mt-1 block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-						/>
-					</div>
-				</div>
-				<div>
-					<label
-						for="agent-note"
-						class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-					>
-						Profile Description
-					</label>
-					<textarea
-						id="agent-note"
-						bind:value={agentNote}
-						rows="3"
-						placeholder="Describe your background, interests, and what you bring to the True Commons..."
-						class="mt-1 block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-					></textarea>
-				</div>
-				<div class="flex justify-end space-x-3">
-					<button
-						type="button"
-						onclick={() => (showCreateForm = false)}
-						class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-					>
-						Cancel
-					</button>
-					<button
-						type="submit"
-						class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-					>
-						Create Agent
-					</button>
-				</div>
-			</form>
-		{/if}
+				Create Profile
+			</button>
+		</div>
 	</div>
 
 	<!-- Search Agents -->
