@@ -15,6 +15,12 @@ export interface AgentCreateParams {
 	image?: string;
 }
 
+export interface AgentUpdateParams {
+	name?: string;
+	note?: string;
+	image?: string;
+}
+
 // Agent Metadata Types - for storing structured metadata as JSON in the note field
 export interface AgentMetadata {
 	// Basic Information
@@ -132,7 +138,7 @@ export const parseAgentMetadata = (note?: string): AgentMetadata | null => {
 };
 
 export const stringifyAgentMetadata = (metadata: AgentMetadata): string => {
-	return JSON.stringify(metadata, null, 2);
+	return JSON.stringify(metadata);
 };
 
 export const isJsonMetadata = (note?: string): boolean => {
@@ -182,7 +188,7 @@ export const parseResourceMetadata = (note?: string): ResourceMetadata | null =>
 };
 
 export const stringifyResourceMetadata = (metadata: ResourceMetadata): string => {
-	return JSON.stringify(metadata, null, 2);
+	return JSON.stringify(metadata);
 };
 
 export interface EconomicResource {

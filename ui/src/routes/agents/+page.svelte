@@ -72,7 +72,7 @@
 			}
 
 			closeProfileForm();
-			await agentsStore.fetchAllAgents();
+			// No need to manually fetch agents - the store updates reactively
 		} catch (error) {
 			console.error('Failed to save agent profile:', error);
 			alert('Failed to save agent profile. Please try again.');
@@ -391,7 +391,7 @@
 				note: stringifyAgentMetadata(randomSample.metadata)
 			});
 			console.log('Sample agent created:', newAgent);
-			await agentsStore.fetchAllAgents();
+			// No need to manually fetch agents - the store updates reactively
 		} catch (error) {
 			console.error('Failed to create sample agent:', error);
 		}

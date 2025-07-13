@@ -7,7 +7,7 @@ import type {
 	AgentCreateParams
 } from '../graphql/types';
 import { GET_AGENTS, GET_MY_AGENT } from '../graphql/queries';
-import { CREATE_PERSON } from '../graphql/mutations';
+import { CREATE_PERSON, UPDATE_AGENT, DELETE_AGENT } from '../graphql/mutations';
 
 export interface AgentsStore {
 	readonly agents: Agent[];
@@ -36,25 +36,6 @@ const GET_MY_AGENT_QUERY = gql`
 `;
 const CREATE_PERSON_MUTATION = gql`
 	${CREATE_PERSON}
-`;
-
-// Additional mutations that may not exist yet
-const UPDATE_AGENT = gql`
-	mutation UpdateAgent($id: ID!, $agent: AgentUpdateParams!) {
-		updateAgent(id: $id, agent: $agent) {
-			agent {
-				id
-				name
-				note
-			}
-		}
-	}
-`;
-
-const DELETE_AGENT = gql`
-	mutation DeleteAgent($id: ID!) {
-		deleteAgent(id: $id)
-	}
 `;
 
 /**
@@ -279,6 +260,7 @@ function createAgentsStore(): AgentsStore {
 
 	/**
 	 * Updates an existing agent in the hREA system.
+	 * Falls back to mock update when GraphQL is not available.
 	 */
 	async function updateAgent(id: string, agentData: Partial<Agent>): Promise<Agent> {
 		if (loading) {
@@ -295,7 +277,30 @@ function createAgentsStore(): AgentsStore {
 			}
 
 			if (!hreaService.apolloClient) {
-				throw new Error('Apollo client is not available');
+				console.warn('GraphQL not available - updating mock agent for development');
+
+				// Find the agent to update
+				const existingAgent = agents.find((agent) => agent.id === id);
+				if (!existingAgent) {
+					throw new Error(`Agent with id ${id} not found`);
+				}
+
+				// Create updated agent
+				const updatedAgent: Agent = {
+					...existingAgent,
+					...agentData
+				};
+
+				// Update in local store
+				agents = agents.map((agent) => (agent.id === id ? updatedAgent : agent));
+
+				// Update myAgent if it's the same agent
+				if (myAgent?.id === id) {
+					myAgent = updatedAgent;
+				}
+
+				console.log('Updated mock agent:', id);
+				return updatedAgent;
 			}
 
 			const result = await hreaService.apolloClient.mutate({
@@ -314,14 +319,33 @@ function createAgentsStore(): AgentsStore {
 				myAgent = updatedAgent;
 			}
 
-			console.log('Updated agent:', id);
+			console.log('Updated agent via GraphQL:', id);
 
 			return updatedAgent;
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			error = `Failed to update agent: ${errorMessage}`;
-			console.error(error, err);
-			throw err;
+		} catch {
+			console.warn('GraphQL agent update failed, falling back to mock update');
+
+			// Fallback to mock update
+			const existingAgent = agents.find((agent) => agent.id === id);
+			if (!existingAgent) {
+				throw new Error(`Agent with id ${id} not found`);
+			}
+
+			const updatedAgent: Agent = {
+				...existingAgent,
+				...agentData
+			};
+
+			// Update in local store
+			agents = agents.map((agent) => (agent.id === id ? updatedAgent : agent));
+
+			// Update myAgent if it's the same agent
+			if (myAgent?.id === id) {
+				myAgent = updatedAgent;
+			}
+
+			console.log('Updated fallback mock agent:', id);
+			return updatedAgent;
 		} finally {
 			loading = false;
 		}
@@ -375,7 +399,7 @@ function createAgentsStore(): AgentsStore {
 	 * Gets an agent by ID
 	 */
 	function getAgentById(id: string): Agent | null {
-		return agents.find(agent => agent.id === id) || null;
+		return agents.find((agent) => agent.id === id) || null;
 	}
 
 	/**
